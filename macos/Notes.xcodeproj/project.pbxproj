@@ -1,0 +1,500 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+		A10000000000000000000001 /* NotesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesApp.swift; sourceTree = "<group>"; };
+		A10000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A10000000000000000000003 /* FolderSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSidebar.swift; sourceTree = "<group>"; };
+		A10000000000000000000009 /* FolderSourceList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSourceList.swift; sourceTree = "<group>"; };
+		A10000000000000000000019 /* FolderOutlineCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderOutlineCoordinator.swift; sourceTree = "<group>"; };
+		A10000000000000000000020 /* FolderOutlineRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderOutlineRows.swift; sourceTree = "<group>"; };
+		A10000000000000000000021 /* NoteFormatMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteFormatMenu.swift; sourceTree = "<group>"; };
+		A10000000000000000000004 /* NoteListColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteListColumn.swift; sourceTree = "<group>"; };
+		A10000000000000000000010 /* NoteTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTable.swift; sourceTree = "<group>"; };
+		A10000000000000000000018 /* SelectionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionRow.swift; sourceTree = "<group>"; };
+		A10000000000000000000005 /* NoteDetailColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDetailColumn.swift; sourceTree = "<group>"; };
+		A10000000000000000000024 /* NoteFindBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteFindBar.swift; sourceTree = "<group>"; };
+		A10000000000000000000025 /* NoteSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteSearchField.swift; sourceTree = "<group>"; };
+		A10000000000000000000027 /* NoteSearchSuggestions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteSearchSuggestions.swift; sourceTree = "<group>"; };
+		A10000000000000000000026 /* NoteListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteListRow.swift; sourceTree = "<group>"; };
+		A10000000000000000000038 /* NoteFindTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteFindTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000006 /* NoteReadWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteReadWebView.swift; sourceTree = "<group>"; };
+		A10000000000000000000007 /* NoteEditorWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteEditorWebView.swift; sourceTree = "<group>"; };
+		A10000000000000000000008 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
+		A10000000000000000000011 /* LibraryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryModels.swift; sourceTree = "<group>"; };
+		A10000000000000000000012 /* LibraryDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDatabase.swift; sourceTree = "<group>"; };
+		A10000000000000000000017 /* LibraryDatabaseStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDatabaseStorage.swift; sourceTree = "<group>"; };
+		A10000000000000000000022 /* LibraryDatabaseReading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDatabaseReading.swift; sourceTree = "<group>"; };
+		A10000000000000000000013 /* NoteCalendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCalendar.swift; sourceTree = "<group>"; };
+		A10000000000000000000014 /* AudioLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLocator.swift; sourceTree = "<group>"; };
+		A10000000000000000000015 /* ReadingHTML.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingHTML.swift; sourceTree = "<group>"; };
+		A10000000000000000000016 /* EditorFileServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFileServer.swift; sourceTree = "<group>"; };
+		A10000000000000000000023 /* NoteTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTypography.swift; sourceTree = "<group>"; };
+		A10000000000000000000031 /* Fixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixture.swift; sourceTree = "<group>"; };
+		A10000000000000000000032 /* LibraryDatabaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDatabaseTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000033 /* NoteCalendarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCalendarTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000034 /* AudioLocatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLocatorTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000035 /* EditorRoundTripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorRoundTripTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000036 /* NoteDateLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDateLayoutTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000037 /* EditorPlaybackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorPlaybackTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000041 /* Editor */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Editor; sourceTree = "<group>"; };
+		A10000000000000000000051 /* Notes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notes.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000052 /* NotesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+
+		B10000000000000000000001 /* NotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001; };
+		B10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002; };
+		B10000000000000000000003 /* FolderSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003; };
+		B10000000000000000000009 /* FolderSourceList.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009; };
+		B10000000000000000000019 /* FolderOutlineCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000019; };
+		B10000000000000000000020 /* FolderOutlineRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000020; };
+		B10000000000000000000036 /* NoteFormatMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000021; };
+		B10000000000000000000004 /* NoteListColumn.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004; };
+		B10000000000000000000010 /* NoteTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010; };
+		B10000000000000000000018 /* SelectionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018; };
+		B10000000000000000000005 /* NoteDetailColumn.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005; };
+		B10000000000000000000040 /* NoteFindBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000024; };
+		B10000000000000000000042 /* NoteSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000025; };
+		B10000000000000000000045 /* NoteSearchSuggestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027; };
+		B10000000000000000000043 /* NoteListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000026; };
+		B10000000000000000000044 /* NoteFindTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000038; };
+		B10000000000000000000006 /* NoteReadWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006; };
+		B10000000000000000000007 /* NoteEditorWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000007; };
+		B10000000000000000000008 /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008; };
+		B10000000000000000000011 /* LibraryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011; };
+		B10000000000000000000012 /* LibraryDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012; };
+		B10000000000000000000017 /* LibraryDatabaseStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017; };
+		B10000000000000000000028 /* LibraryDatabaseReading.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000022; };
+		B10000000000000000000013 /* NoteCalendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013; };
+		B10000000000000000000014 /* AudioLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014; };
+		B10000000000000000000015 /* ReadingHTML.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015; };
+		B10000000000000000000016 /* EditorFileServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016; };
+		B10000000000000000000030 /* NoteTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000023; };
+		B10000000000000000000037 /* NoteTypography.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000023; };
+		B10000000000000000000021 /* LibraryModels.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011; };
+		B10000000000000000000022 /* LibraryDatabase.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012; };
+		B10000000000000000000027 /* LibraryDatabaseStorage.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017; };
+		B10000000000000000000029 /* LibraryDatabaseReading.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000022; };
+		B10000000000000000000023 /* NoteCalendar.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013; };
+		B10000000000000000000024 /* AudioLocator.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014; };
+		B10000000000000000000025 /* ReadingHTML.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015; };
+		B10000000000000000000026 /* EditorFileServer.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016; };
+		B10000000000000000000031 /* Fixture.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000031; };
+		B10000000000000000000032 /* LibraryDatabaseTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000032; };
+		B10000000000000000000033 /* NoteCalendarTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000033; };
+		B10000000000000000000034 /* AudioLocatorTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000034; };
+		B10000000000000000000035 /* EditorRoundTripTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000035; };
+		B10000000000000000000038 /* NoteDateLayoutTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000036; };
+		B10000000000000000000039 /* EditorPlaybackTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000037; };
+		B10000000000000000000041 /* Editor in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000041; };
+
+		C10000000000000000000001 /* Notes */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000001 /* NotesApp.swift */,
+				A10000000000000000000002 /* ContentView.swift */,
+				A10000000000000000000003 /* FolderSidebar.swift */,
+				A10000000000000000000009 /* FolderSourceList.swift */,
+				A10000000000000000000019 /* FolderOutlineCoordinator.swift */,
+				A10000000000000000000020 /* FolderOutlineRows.swift */,
+				A10000000000000000000021 /* NoteFormatMenu.swift */,
+				A10000000000000000000004 /* NoteListColumn.swift */,
+				A10000000000000000000010 /* NoteTable.swift */,
+				A10000000000000000000026 /* NoteListRow.swift */,
+				A10000000000000000000018 /* SelectionRow.swift */,
+				A10000000000000000000005 /* NoteDetailColumn.swift */,
+				A10000000000000000000024 /* NoteFindBar.swift */,
+				A10000000000000000000025 /* NoteSearchField.swift */,
+				A10000000000000000000027 /* NoteSearchSuggestions.swift */,
+				A10000000000000000000006 /* NoteReadWebView.swift */,
+				A10000000000000000000007 /* NoteEditorWebView.swift */,
+				A10000000000000000000008 /* LibraryStore.swift */,
+				A10000000000000000000041 /* Editor */,
+			);
+			path = Notes;
+			sourceTree = "<group>";
+		};
+		C10000000000000000000002 /* NotesCore */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000011 /* LibraryModels.swift */,
+				A10000000000000000000012 /* LibraryDatabase.swift */,
+				A10000000000000000000017 /* LibraryDatabaseStorage.swift */,
+				A10000000000000000000022 /* LibraryDatabaseReading.swift */,
+				A10000000000000000000013 /* NoteCalendar.swift */,
+				A10000000000000000000014 /* AudioLocator.swift */,
+				A10000000000000000000015 /* ReadingHTML.swift */,
+				A10000000000000000000023 /* NoteTypography.swift */,
+				A10000000000000000000016 /* EditorFileServer.swift */,
+			);
+			path = NotesCore;
+			sourceTree = "<group>";
+		};
+		C10000000000000000000003 /* NotesTests */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000031 /* Fixture.swift */,
+				A10000000000000000000032 /* LibraryDatabaseTests.swift */,
+				A10000000000000000000033 /* NoteCalendarTests.swift */,
+				A10000000000000000000034 /* AudioLocatorTests.swift */,
+				A10000000000000000000035 /* EditorRoundTripTests.swift */,
+				A10000000000000000000038 /* NoteFindTests.swift */,
+				A10000000000000000000037 /* EditorPlaybackTests.swift */,
+				A10000000000000000000036 /* NoteDateLayoutTests.swift */,
+			);
+			path = NotesTests;
+			sourceTree = "<group>";
+		};
+		C10000000000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000051 /* Notes.app */,
+				A10000000000000000000052 /* NotesTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C10000000000000000000005 = {
+			isa = PBXGroup;
+			children = (
+				C10000000000000000000001 /* Notes */,
+				C10000000000000000000002 /* NotesCore */,
+				C10000000000000000000003 /* NotesTests */,
+				C10000000000000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+
+		D10000000000000000000001 /* Notes */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = L20000000000000000000002 /* Build configuration list for PBXNativeTarget "Notes" */;
+			buildPhases = (
+				P30000000000000000000083 /* Build editor */,
+				P10000000000000000000081 /* Sources */,
+				P20000000000000000000082 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Notes;
+			productName = Notes;
+			productReference = A10000000000000000000051 /* Notes.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D10000000000000000000002 /* NotesTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = L30000000000000000000003 /* Build configuration list for PBXNativeTarget "NotesTests" */;
+			buildPhases = (
+				P40000000000000000000084 /* Sources */,
+				P50000000000000000000085 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				R20000000000000000000092 /* PBXTargetDependency */,
+			);
+			name = NotesTests;
+			productName = NotesTests;
+			productReference = A10000000000000000000052 /* NotesTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+
+		E10000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					D10000000000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					D10000000000000000000002 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = D10000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = L10000000000000000000001 /* Build configuration list for PBXProject "Notes" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C10000000000000000000005;
+			productRefGroup = C10000000000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D10000000000000000000001 /* Notes */,
+				D10000000000000000000002 /* NotesTests */,
+			);
+		};
+
+		P10000000000000000000081 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000001 /* NotesApp.swift in Sources */,
+				B10000000000000000000002 /* ContentView.swift in Sources */,
+				B10000000000000000000003 /* FolderSidebar.swift in Sources */,
+				B10000000000000000000009 /* FolderSourceList.swift in Sources */,
+				B10000000000000000000019 /* FolderOutlineCoordinator.swift in Sources */,
+				B10000000000000000000020 /* FolderOutlineRows.swift in Sources */,
+				B10000000000000000000036 /* NoteFormatMenu.swift in Sources */,
+				B10000000000000000000004 /* NoteListColumn.swift in Sources */,
+				B10000000000000000000010 /* NoteTable.swift in Sources */,
+				B10000000000000000000043 /* NoteListRow.swift in Sources */,
+				B10000000000000000000018 /* SelectionRow.swift in Sources */,
+				B10000000000000000000005 /* NoteDetailColumn.swift in Sources */,
+				B10000000000000000000040 /* NoteFindBar.swift in Sources */,
+				B10000000000000000000042 /* NoteSearchField.swift in Sources */,
+				B10000000000000000000045 /* NoteSearchSuggestions.swift in Sources */,
+				B10000000000000000000006 /* NoteReadWebView.swift in Sources */,
+				B10000000000000000000007 /* NoteEditorWebView.swift in Sources */,
+				B10000000000000000000008 /* LibraryStore.swift in Sources */,
+				B10000000000000000000011 /* LibraryModels.swift in Sources */,
+				B10000000000000000000012 /* LibraryDatabase.swift in Sources */,
+				B10000000000000000000017 /* LibraryDatabaseStorage.swift in Sources */,
+				B10000000000000000000028 /* LibraryDatabaseReading.swift in Sources */,
+				B10000000000000000000013 /* NoteCalendar.swift in Sources */,
+				B10000000000000000000014 /* AudioLocator.swift in Sources */,
+				B10000000000000000000015 /* ReadingHTML.swift in Sources */,
+				B10000000000000000000030 /* NoteTypography.swift in Sources */,
+				B10000000000000000000016 /* EditorFileServer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		P20000000000000000000082 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000041 /* Editor in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		P30000000000000000000083 /* Build editor */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Build editor";
+			outputPaths = (
+				"$(SRCROOT)/Notes/Editor/index.html",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd \"$SRCROOT/..\" && npm exec vite -- --config macos/editor/vite.config.js build\n";
+		};
+		P40000000000000000000084 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000021 /* LibraryModels.swift in Tests */,
+				B10000000000000000000022 /* LibraryDatabase.swift in Tests */,
+				B10000000000000000000027 /* LibraryDatabaseStorage.swift in Tests */,
+				B10000000000000000000029 /* LibraryDatabaseReading.swift in Tests */,
+				B10000000000000000000023 /* NoteCalendar.swift in Tests */,
+				B10000000000000000000024 /* AudioLocator.swift in Tests */,
+				B10000000000000000000025 /* ReadingHTML.swift in Tests */,
+				B10000000000000000000037 /* NoteTypography.swift in Tests */,
+				B10000000000000000000026 /* EditorFileServer.swift in Tests */,
+				B10000000000000000000031 /* Fixture.swift in Tests */,
+				B10000000000000000000032 /* LibraryDatabaseTests.swift in Tests */,
+				B10000000000000000000033 /* NoteCalendarTests.swift in Tests */,
+				B10000000000000000000034 /* AudioLocatorTests.swift in Tests */,
+				B10000000000000000000035 /* EditorRoundTripTests.swift in Tests */,
+				B10000000000000000000044 /* NoteFindTests.swift in Tests */,
+				B10000000000000000000039 /* EditorPlaybackTests.swift in Tests */,
+				B10000000000000000000038 /* NoteDateLayoutTests.swift in Tests */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		P50000000000000000000085 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
+		R10000000000000000000091 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D10000000000000000000001;
+			remoteInfo = Notes;
+		};
+		R20000000000000000000092 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D10000000000000000000001 /* Notes */;
+			targetProxy = R10000000000000000000091 /* PBXContainerItemProxy */;
+		};
+
+		L10000000000000000000001 /* Build configuration list for PBXProject "Notes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				M10000000000000000000001 /* Debug */,
+				M20000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		L20000000000000000000002 /* Build configuration list for PBXNativeTarget "Notes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				M30000000000000000000003 /* Debug */,
+				M40000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		L30000000000000000000003 /* Build configuration list for PBXNativeTarget "NotesTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				M50000000000000000000005 /* Debug */,
+				M60000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+
+		M10000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		M20000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		M30000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_REQUIRED = NO;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Notes;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"-lsqlite3",
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.pythonidaer.notes.swift;
+				PRODUCT_NAME = Notes;
+			};
+			name = Debug;
+		};
+		M40000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_REQUIRED = NO;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Notes;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"-lsqlite3",
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.pythonidaer.notes.swift;
+				PRODUCT_NAME = Notes;
+			};
+			name = Release;
+		};
+		M50000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"-lsqlite3",
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.pythonidaer.notes.swift.tests;
+				PRODUCT_NAME = NotesTests;
+			};
+			name = Debug;
+		};
+		M60000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"-lsqlite3",
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.pythonidaer.notes.swift.tests;
+				PRODUCT_NAME = NotesTests;
+			};
+			name = Release;
+		};
+	};
+	rootObject = E10000000000000000000001 /* Project object */;
+}

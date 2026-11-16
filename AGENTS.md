@@ -1,0 +1,11 @@
+## Swift API design rules
+
+- **Review the call site.** Read a representative use before finalizing a name or signature. A reader should be able to tell what the call does, what each argument means, and whether it changes state.
+- **Name values for their role.** Use names like `selectedPhoto` and `destinationURL`. Use `UpperCamelCase` for types and protocols and `lowerCamelCase` for methods, properties, variables, and enum cases. Use familiar terms consistently across the UI and code.
+- **Make actions and queries read naturally.** Use an imperative verb for side effects, as in `saveLibrary()`. Use a noun phrase for a value-producing query when it fits, as in `photoCount(in:)`. Make Boolean queries read as assertions, as in `isEmpty` or `contains(photo)`. Start factory method names with `make`, as in `makeThumbnail()`.
+- **Make mutation visible in paired names.** Follow Swift’s `sort()` / `sorted()` and `reverse()` / `reversed()` patterns when offering both an in-place operation and a version that returns a new value.
+- **Choose argument labels at the call site.** Label arguments that have distinct roles, as in `movePhoto(from:to:)`. Omit a label when the argument naturally completes the method name, as in `remove(photo)`, or when the arguments have interchangeable roles, as in `min(a, b)`. Use descriptive internal parameter names, too.
+- **Keep related APIs consistent.** Use the same base name for overloads that perform the same essential operation. Clarify ambiguous overloads with labels such as `append(contentsOf:)`. Put defaulted parameters near the end when practical. Label tuple members and name closure parameters in API signatures when they communicate a role.
+- **Make cost and behavior discoverable.** Prefer methods and properties on the type that owns the behavior. Document the complexity of computed properties that take more than constant time. Use `///` for public APIs and internal declarations whose behavior needs explanation. Start with a one-line summary and document relevant side effects, errors, return values, or assumptions.
+
+Source: https://www.swift.org/documentation/api-design-guidelines/

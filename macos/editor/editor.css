@@ -1,0 +1,241 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  color: CanvasText;
+  background: transparent;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  max-width: 100%;
+  background: transparent;
+  color: CanvasText;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+#editor {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.noteText p.note-date {
+  margin: 2px 0 0;
+  padding: 0;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 14px;
+  color: color-mix(in srgb, CanvasText 50%, transparent);
+}
+
+.note-date:empty {
+  display: none;
+}
+
+.noteText {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 100%;
+  outline: none;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 16px;
+  font-variant-ligatures: none;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  caret-color: CanvasText;
+  color: CanvasText;
+}
+
+.ProseMirror.noteText {
+  white-space: pre-wrap;
+}
+
+.noteText p {
+  margin: 0.45rem 0;
+}
+
+.noteText p.note-title,
+.noteText p[data-note-title] {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 26px;
+  margin: 8px 0 12px;
+}
+
+.noteText h1,
+.noteText h2,
+.noteText h3 {
+  line-height: 16px;
+  margin: 0.7rem 0 0.35rem;
+}
+
+.noteText h1,
+.noteText h2 {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.noteText h3 {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.noteText .find-match {
+  background-color: rgb(248, 220, 48);
+  color: rgb(28, 28, 28);
+  border-radius: 2px;
+}
+
+.noteText .find-match.find-match-current {
+  background-color: rgb(255, 196, 0);
+  box-shadow: inset 0 -1px 0 rgb(160, 100, 0);
+}
+
+.noteText mark {
+  color: inherit;
+  background-color: transparent;
+  border-radius: 3px;
+}
+
+.noteText mark[data-color="purple"] {
+  color: light-dark(rgb(203, 48, 224), rgb(219, 52, 242));
+  background-color: light-dark(rgb(203 48 224 / 15%), rgb(219 52 242 / 15%));
+}
+
+.noteText mark[data-color="pink"] {
+  color: light-dark(rgb(255, 45, 85), rgb(255, 55, 95));
+  background-color: light-dark(rgb(255 45 85 / 15%), rgb(255 55 95 / 15%));
+}
+
+.noteText mark[data-color="orange"] {
+  color: light-dark(rgb(255, 141, 40), rgb(255, 146, 48));
+  background-color: light-dark(rgb(255 141 40 / 15%), rgb(255 146 48 / 15%));
+}
+
+.noteText mark[data-color="mint"] {
+  color: light-dark(rgb(0, 200, 179), rgb(0, 218, 195));
+  background-color: light-dark(rgb(0 200 179 / 15%), rgb(0 218 195 / 15%));
+}
+
+.noteText mark[data-color="blue"] {
+  color: light-dark(rgb(0, 136, 255), rgb(0, 145, 255));
+  background-color: light-dark(rgb(0 136 255 / 15%), rgb(0 145 255 / 15%));
+}
+
+.ProseMirror.noteText blockquote {
+  margin: 0.6rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid color-mix(in srgb, CanvasText 35%, transparent);
+}
+
+.ProseMirror.noteText ul,
+.ProseMirror.noteText ol {
+  margin: 0.45rem 0;
+  padding-left: 30px;
+}
+
+.noteText pre {
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.noteText img,
+.noteText video,
+.noteText figure {
+  max-width: 100%;
+}
+
+.noteText ul[data-list="dash"] {
+  list-style-type: "–  ";
+}
+
+.noteText ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.noteText ul[data-type="taskList"] li {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.noteText figure {
+  margin: 0.75rem 0;
+}
+
+.noteText figure.nn-audio-embed audio {
+  display: block;
+  width: 100%;
+  margin: 0.35rem 0;
+}
+
+.noteText .nn-audio-caption {
+  display: none;
+}
+
+.noteText .tableWrapper {
+  max-width: 100%;
+  margin: 0.75rem 0;
+}
+
+.noteText table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.noteText td,
+.noteText th {
+  position: relative;
+  border: 1px solid color-mix(in srgb, CanvasText 25%, transparent);
+  padding: 6px 8px;
+  vertical-align: top;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+}
+
+.noteText td p,
+.noteText th p {
+  margin: 0;
+}
+
+.noteText .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, CanvasText 8%, transparent);
+  pointer-events: none;
+}
+
+.noteText .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  width: 4px;
+  background: color-mix(in srgb, CanvasText 35%, transparent);
+  pointer-events: none;
+}

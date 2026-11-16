@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>UTExportedTypeDeclarations</key>
+  <array>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>com.pythonidaer.notes.note</string>
+      <key>UTTypeDescription</key>
+      <string>Note</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+      </array>
+    </dict>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>com.pythonidaer.notes.folder</string>
+      <key>UTTypeDescription</key>
+      <string>Folder</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+      </array>
+    </dict>
+  </array>
+</dict>
+</plist>
