@@ -1,6 +1,14 @@
 import XCTest
 
 final class NoteCalendarTests: XCTestCase {
+    func testEmptyNoteUsesTheListPlaceholders() {
+        XCTAssertEqual(NoteCalendar.listTitle(""), "New Note")
+        XCTAssertEqual(NoteCalendar.listTitle("   "), "New Note")
+        XCTAssertEqual(NoteCalendar.listTitle("Spartan Race"), "Spartan Race")
+        XCTAssertEqual(NoteCalendar.listPreview(""), "No additional text")
+        XCTAssertEqual(NoteCalendar.listPreview("Hello"), "Hello")
+    }
+
     func testGroupsMatchTheNoteListBuckets() {
         let calendar = newYork()
         let now = date(2026, 11, 15, 18, calendar)
@@ -23,6 +31,25 @@ final class NoteCalendarTests: XCTestCase {
         XCTAssertEqual(groups.map(\.key), ["today", "previous30", "month-0", "year-2020", "unknown"])
         XCTAssertEqual(groups.map(\.label), ["Today", "Previous 30 Days", "January", "2020", "Unknown Date"])
         XCTAssertEqual(groups[0].notes.map(\.id), ["today"])
+    }
+
+    func testFolderSelectionKeepsTheOpenNoteOrShowsTheFirst() {
+        let calendar = newYork()
+        let now = date(2026, 11, 15, 18, calendar)
+        let older = note(iso(date(2026, 11, 15, 8, calendar), calendar), "older")
+        let newer = note(iso(date(2026, 11, 15, 17, calendar), calendar), "newer")
+        let notes = [older, newer]
+        XCTAssertEqual(
+            NoteCalendar.noteIDForSelection(in: notes, selectedID: "older", now: now, calendar: calendar),
+            "older"
+        )
+        XCTAssertEqual(
+            NoteCalendar.noteIDForSelection(in: notes, selectedID: "elsewhere", now: now, calendar: calendar),
+            "newer"
+        )
+        XCTAssertNil(
+            NoteCalendar.noteIDForSelection(in: [], selectedID: "older", now: now, calendar: calendar)
+        )
     }
 
     func testDeleteSelectsTheNextVisibleNote() {

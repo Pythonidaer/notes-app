@@ -41,19 +41,29 @@ final class NotesSelectionRow: NSTableRowView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        guard selectionIsActive, kind != .plain else { return }
-        let inset: CGFloat = 8
-        let rect = bounds.insetBy(dx: inset, dy: kind == .folder ? 3 : 4)
-        let radius: CGFloat = kind == .folder ? 6 : 8
+        // Note rows draw their own pill so it can share the title block's insets.
+        guard selectionIsActive, kind == .folder else { return }
+        let rect = bounds.insetBy(dx: 8, dy: 3)
+        let radius: CGFloat = 6
         fillColor.setFill()
         NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
     }
 
     override var interiorBackgroundStyle: NSView.BackgroundStyle {
         guard selectionIsActive, kind != .plain else { return .normal }
-        if kind == .folder { return .emphasized }
+        if kind == .folder {
+            return enclosingFolderOutline(of: self)?.showsAccentSelection == true ? .emphasized : .normal
+        }
+        if enclosingNoteList(of: self)?.showsAccentSelection == true {
+            return .emphasized
+        }
         let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         return dark ? .emphasized : .normal
+    }
+
+    func updateSelectionAppearance() {
+        needsDisplay = true
+        refreshCells()
     }
 
     private var selectionIsActive: Bool {
@@ -76,19 +86,46 @@ final class NotesSelectionRow: NSTableRowView {
     private var fillColor: NSColor {
         switch kind {
         case .folder:
-            .controlAccentColor
-        case .note:
-            NSColor(name: nil) { appearance in
-                let dark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-                if dark {
-                    return NSColor(srgbRed: 0.27, green: 0.27, blue: 0.29, alpha: 1)
-                }
-                return NSColor(srgbRed: 0.86, green: 0.86, blue: 0.88, alpha: 1)
+            if enclosingFolderOutline(of: self)?.showsAccentSelection == true {
+                return .controlAccentColor
             }
+            return Self.quietSelectionFill
+        case .note:
+            if enclosingNoteList(of: self)?.showsAccentSelection == true {
+                return .controlAccentColor
+            }
+            return Self.quietSelectionFill
         case .plain:
-            .clear
+            return .clear
         }
     }
+
+    /// Gray used for a note row, and for a folder once the sidebar is no longer the active column.
+    static let quietSelectionFill = NSColor(name: nil) { appearance in
+        let dark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        if dark {
+            return NSColor(srgbRed: 0.27, green: 0.27, blue: 0.29, alpha: 1)
+        }
+        return NSColor(srgbRed: 0.86, green: 0.86, blue: 0.88, alpha: 1)
+    }
+}
+
+func enclosingNoteList(of view: NSView) -> NoteListView? {
+    var current: NSView? = view
+    while let candidate = current {
+        if let list = candidate as? NoteListView { return list }
+        current = candidate.superview
+    }
+    return nil
+}
+
+func enclosingFolderOutline(of view: NSView) -> FolderOutlineView? {
+    var current: NSView? = view
+    while let candidate = current {
+        if let outline = candidate as? FolderOutlineView { return outline }
+        current = candidate.superview
+    }
+    return nil
 }
 
 func notesRowIsSelected(_ view: NSView) -> Bool {

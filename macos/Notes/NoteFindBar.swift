@@ -10,7 +10,7 @@ extension Notification.Name {
 func noteFindKeyEquivalent(_ event: NSEvent) -> Bool {
     let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
     guard flags == .command, event.charactersIgnoringModifiers?.lowercased() == "f" else { return false }
-    NotificationCenter.default.post(name: .showNoteFind, object: nil)
+    NotificationCenter.default.post(name: .showNoteFind, object: event.window)
     return true
 }
 

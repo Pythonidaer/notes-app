@@ -34,6 +34,12 @@
 		A10000000000000000000015 /* ReadingHTML.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingHTML.swift; sourceTree = "<group>"; };
 		A10000000000000000000016 /* EditorFileServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFileServer.swift; sourceTree = "<group>"; };
 		A10000000000000000000023 /* NoteTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTypography.swift; sourceTree = "<group>"; };
+		A10000000000000000000046 /* NoteAutosave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteAutosave.swift; sourceTree = "<group>"; };
+		A10000000000000000000047 /* NoteAutosaveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteAutosaveTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000053 /* NoteCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCanvas.swift; sourceTree = "<group>"; };
+		A10000000000000000000054 /* NoteWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteWindow.swift; sourceTree = "<group>"; };
+		A10000000000000000000055 /* OpenNoteWindows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenNoteWindows.swift; sourceTree = "<group>"; };
+		A10000000000000000000056 /* OpenNoteWindowsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenNoteWindowsTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000031 /* Fixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixture.swift; sourceTree = "<group>"; };
 		A10000000000000000000032 /* LibraryDatabaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDatabaseTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000033 /* NoteCalendarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCalendarTests.swift; sourceTree = "<group>"; };
@@ -73,6 +79,14 @@
 		B10000000000000000000015 /* ReadingHTML.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015; };
 		B10000000000000000000016 /* EditorFileServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016; };
 		B10000000000000000000030 /* NoteTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000023; };
+		B10000000000000000000046 /* NoteAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000046; };
+		B10000000000000000000047 /* NoteAutosave.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000046; };
+		B10000000000000000000048 /* NoteAutosaveTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000047; };
+		B10000000000000000000053 /* NoteCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000053; };
+		B10000000000000000000054 /* NoteWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000054; };
+		B10000000000000000000055 /* OpenNoteWindows.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000055; };
+		B10000000000000000000056 /* OpenNoteWindows.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000055; };
+		B10000000000000000000057 /* OpenNoteWindowsTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000056; };
 		B10000000000000000000037 /* NoteTypography.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000023; };
 		B10000000000000000000021 /* LibraryModels.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011; };
 		B10000000000000000000022 /* LibraryDatabase.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012; };
@@ -106,6 +120,8 @@
 				A10000000000000000000026 /* NoteListRow.swift */,
 				A10000000000000000000018 /* SelectionRow.swift */,
 				A10000000000000000000005 /* NoteDetailColumn.swift */,
+				A10000000000000000000053 /* NoteCanvas.swift */,
+				A10000000000000000000054 /* NoteWindow.swift */,
 				A10000000000000000000024 /* NoteFindBar.swift */,
 				A10000000000000000000025 /* NoteSearchField.swift */,
 				A10000000000000000000027 /* NoteSearchSuggestions.swift */,
@@ -128,6 +144,8 @@
 				A10000000000000000000014 /* AudioLocator.swift */,
 				A10000000000000000000015 /* ReadingHTML.swift */,
 				A10000000000000000000023 /* NoteTypography.swift */,
+				A10000000000000000000046 /* NoteAutosave.swift */,
+				A10000000000000000000055 /* OpenNoteWindows.swift */,
 				A10000000000000000000016 /* EditorFileServer.swift */,
 			);
 			path = NotesCore;
@@ -142,6 +160,8 @@
 				A10000000000000000000034 /* AudioLocatorTests.swift */,
 				A10000000000000000000035 /* EditorRoundTripTests.swift */,
 				A10000000000000000000038 /* NoteFindTests.swift */,
+				A10000000000000000000047 /* NoteAutosaveTests.swift */,
+				A10000000000000000000056 /* OpenNoteWindowsTests.swift */,
 				A10000000000000000000037 /* EditorPlaybackTests.swift */,
 				A10000000000000000000036 /* NoteDateLayoutTests.swift */,
 			);
@@ -252,6 +272,8 @@
 				B10000000000000000000043 /* NoteListRow.swift in Sources */,
 				B10000000000000000000018 /* SelectionRow.swift in Sources */,
 				B10000000000000000000005 /* NoteDetailColumn.swift in Sources */,
+				B10000000000000000000053 /* NoteCanvas.swift in Sources */,
+				B10000000000000000000054 /* NoteWindow.swift in Sources */,
 				B10000000000000000000040 /* NoteFindBar.swift in Sources */,
 				B10000000000000000000042 /* NoteSearchField.swift in Sources */,
 				B10000000000000000000045 /* NoteSearchSuggestions.swift in Sources */,
@@ -266,6 +288,8 @@
 				B10000000000000000000014 /* AudioLocator.swift in Sources */,
 				B10000000000000000000015 /* ReadingHTML.swift in Sources */,
 				B10000000000000000000030 /* NoteTypography.swift in Sources */,
+				B10000000000000000000046 /* NoteAutosave.swift in Sources */,
+				B10000000000000000000055 /* OpenNoteWindows.swift in Sources */,
 				B10000000000000000000016 /* EditorFileServer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -306,6 +330,10 @@
 				B10000000000000000000024 /* AudioLocator.swift in Tests */,
 				B10000000000000000000025 /* ReadingHTML.swift in Tests */,
 				B10000000000000000000037 /* NoteTypography.swift in Tests */,
+				B10000000000000000000047 /* NoteAutosave.swift in Tests */,
+				B10000000000000000000048 /* NoteAutosaveTests.swift in Tests */,
+				B10000000000000000000056 /* OpenNoteWindows.swift in Tests */,
+				B10000000000000000000057 /* OpenNoteWindowsTests.swift in Tests */,
 				B10000000000000000000026 /* EditorFileServer.swift in Tests */,
 				B10000000000000000000031 /* Fixture.swift in Tests */,
 				B10000000000000000000032 /* LibraryDatabaseTests.swift in Tests */,

@@ -1,7 +1,7 @@
 import { Editor } from "@tiptap/core";
 import DOMPurify from "dompurify";
 import { Fragment } from "@tiptap/pm/model";
-import { TextSelection } from "@tiptap/pm/state";
+import { EditorState, TextSelection } from "@tiptap/pm/state";
 import { createTable } from "@tiptap/extension-table";
 
 import { extensions, highlightColors, noteDateKey, noteFindKey } from "./extensions.js";
@@ -140,7 +140,22 @@ function loadNote(title, html) {
     editor.commands.setContent(cleaned, { emitUpdate: false });
     const node = titleNode(editor.schema, title);
     editor.view.dispatch(editor.state.tr.insert(0, node));
+    // One editor serves every note. Opening a note must leave the undo stack empty,
+    // or Command-Z restores the note that was open before this one.
+    dropUndoHistory();
   });
+}
+
+function dropUndoHistory() {
+  const date = noteDateKey.getState(editor.state) ?? "";
+  const fresh = EditorState.create({
+    doc: editor.state.doc,
+    selection: editor.state.selection,
+    storedMarks: editor.state.storedMarks,
+    plugins: editor.state.plugins,
+  });
+  editor.view.updateState(fresh);
+  showDate(date);
 }
 
 function selectedBlock(state) {
@@ -458,6 +473,9 @@ window.notesEditor = {
   setNote(title, html, dateHeading) {
     if (typeof dateHeading === "string") showDate(dateHeading);
     loadNote(title, html);
+  },
+  focusStart() {
+    editor.commands.focus("start");
   },
   undo() {
     return editor.chain().focus().undo().run();

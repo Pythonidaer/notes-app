@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NoteListColumn: View {
     @ObservedObject var store: LibraryStore
+    var onOpenInNewWindow: (String) -> Void = { _ in }
 
     var body: some View {
         let notes = store.notesMatchingSearch()
@@ -10,21 +11,31 @@ struct NoteListColumn: View {
         let folderNames = Dictionary(uniqueKeysWithValues: store.folders.map { ($0.id, $0.name) })
         Group {
             if groups.isEmpty {
-                ContentUnavailableView(
-                    searching ? "No Results" : "No notes",
-                    systemImage: searching ? "magnifyingglass" : "note.text"
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Text(searching ? "No Results" : "No Notes")
+                    .font(Font(NoteTypography.emptyNoteList))
+                    .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        store.startNoteInEmptyFolder()
+                    }
             } else {
                 NoteTable(
                     groups: groups,
                     selectedID: store.selectedNoteID,
                     query: searching ? store.searchText : "",
                     showsResultFolder: searching,
-                    folderNames: folderNames
-                ) { id in
-                    store.selectNote(id)
-                }
+                    folderNames: folderNames,
+                    folders: store.folders,
+                    onSelect: { store.selectNote($0) },
+                    onMove: { store.moveNote($0, to: $1) },
+                    onDuplicate: { store.duplicateNote($0) },
+                    onDelete: { id in
+                        store.selectNote(id)
+                        store.askToDeleteNote()
+                    },
+                    onOpenInNewWindow: onOpenInNewWindow
+                )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }

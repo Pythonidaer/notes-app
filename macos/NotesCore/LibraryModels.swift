@@ -339,6 +339,15 @@ struct NoteDetail: Equatable, Identifiable {
     var createdAtSource: String
     var modifiedAtSource: String
     var folderID: String?
+
+    /// The delete confirmation. Audio is mentioned only when this note has a clip, because those files stay on disk.
+    var deleteConfirmationMessage: String {
+        let hasAudio = ReadingHTML.embeddedAudio(in: bodyHTML).contains { !$0.storagePath.isEmpty }
+        if hasAudio {
+            return "Delete this note? Audio files stay."
+        }
+        return "Delete this note?"
+    }
 }
 
 struct LibrarySnapshot: Equatable {

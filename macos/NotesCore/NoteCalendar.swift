@@ -146,6 +146,27 @@ enum NoteCalendar {
         return nil
     }
 
+    /// The note to open for this list.
+    ///
+    /// Keeps `selectedID` when that note is still in `notes`. Otherwise returns the first note
+    /// in list order. An empty list returns nil, which leaves the note column blank.
+    static func noteIDForSelection(
+        in notes: [NoteSummary],
+        selectedID: String?,
+        arrangement: NoteListArrangement = NoteListArrangement(),
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> String? {
+        if let selectedID, notes.contains(where: { $0.id == selectedID }) {
+            return selectedID
+        }
+        return arrange(notes, arrangement: arrangement, now: now, calendar: calendar)
+            .lazy
+            .compactMap(\.notes.first)
+            .first?
+            .id
+    }
+
     /// The list date, such as 11/6/26.
     static func format(_ note: NoteSummary, calendar: Calendar = .current) -> String {
         guard let date = effectiveDate(note, calendar: calendar) else {
@@ -257,9 +278,20 @@ enum NoteCalendar {
         }
     }
 
+    /// The list title. An empty note is "New Note" until a title is typed.
+    static func listTitle(_ title: String) -> String {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "New Note" : trimmed
+    }
+
+    /// The list preview. An empty body is "No additional text".
+    static func listPreview(_ opening: String) -> String {
+        let trimmed = opening.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "No additional text" : trimmed
+    }
+
     private static func titleKey(_ note: NoteSummary) -> String {
-        let trimmed = note.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Untitled" : trimmed
+        listTitle(note.title)
     }
 
     private static func parseISO(_ value: String) -> Date? {

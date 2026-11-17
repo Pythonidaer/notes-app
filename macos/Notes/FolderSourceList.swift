@@ -39,6 +39,7 @@ struct FolderSourceList: NSViewRepresentable {
         menu.delegate = context.coordinator
         outline.menu = menu
         context.coordinator.outline = outline
+        context.coordinator.startTrackingSidebarClicks()
 
         let scroll = NSScrollView()
         scroll.documentView = outline
@@ -83,6 +84,45 @@ final class OutlineItem: NSObject {
 final class FolderOutlineView: NSOutlineView {
     /// Matches the folder icon's leading inset so the disclosure triangle sits against the icon.
     static let iconInset: CGFloat = 10
+
+    /// A click outside the sidebar draws the selected folder in the quiet gray style.
+    var sidebarSelectionIsQuiet = false
+    private var keyObservers: [NSObjectProtocol] = []
+
+    /// Accent fill while the sidebar is the active column. Quiet gray after a click elsewhere.
+    var showsAccentSelection: Bool {
+        guard let window, window.isKeyWindow else { return false }
+        return !sidebarSelectionIsQuiet
+    }
+
+    func refreshSelectionAppearance() {
+        enumerateAvailableRowViews { rowView, _ in
+            (rowView as? NotesSelectionRow)?.updateSelectionAppearance()
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        for observer in keyObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        keyObservers.removeAll()
+        guard let window else { return }
+        let names = [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification]
+        for name in names {
+            keyObservers.append(
+                NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
+                    self?.refreshSelectionAppearance()
+                }
+            )
+        }
+    }
+
+    deinit {
+        for observer in keyObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
 
     override func frameOfOutlineCell(atRow row: Int) -> NSRect {
         let cell = frameOfCell(atColumn: 0, row: row)
@@ -164,10 +204,21 @@ final class FolderCell: NSTableCellView {
     }
 
     private func applyColors() {
-        let selected = backgroundStyle == .emphasized || rowIsSelected
-        textField?.textColor = selected ? .white : .labelColor
-        countField.textColor = selected ? NSColor.white.withAlphaComponent(0.9) : .secondaryLabelColor
-        imageView?.contentTintColor = selected ? .white : .secondaryLabelColor
+        let selected = rowIsSelected
+        let accent = selected && enclosingFolderOutline(of: self)?.showsAccentSelection == true
+        if accent {
+            textField?.textColor = .white
+            countField.textColor = NSColor.white.withAlphaComponent(0.9)
+            imageView?.contentTintColor = .white
+        } else if selected {
+            textField?.textColor = .labelColor
+            countField.textColor = .secondaryLabelColor
+            imageView?.contentTintColor = .controlAccentColor
+        } else {
+            textField?.textColor = .labelColor
+            countField.textColor = .secondaryLabelColor
+            imageView?.contentTintColor = .secondaryLabelColor
+        }
     }
 
     private var rowIsSelected: Bool {

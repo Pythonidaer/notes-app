@@ -10,14 +10,19 @@ struct NoteTable: NSViewRepresentable {
     /// Search results show the folder name, including a suggestion with no typed words.
     var showsResultFolder: Bool = false
     var folderNames: [String: String] = [:]
+    var folders: [Folder] = []
     var onSelect: (String) -> Void
+    var onMove: (String, String) -> Void = { _, _ in }
+    var onDuplicate: (String) -> Void = { _ in }
+    var onDelete: (String) -> Void = { _ in }
+    var onOpenInNewWindow: (String) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
 
     func makeNSView(context: Context) -> NSScrollView {
-        let table = NSTableView()
+        let table = NoteListView()
         table.headerView = nil
         table.columnAutoresizingStyle = .firstColumnOnlyAutoresizingStyle
         table.allowsColumnResizing = false
@@ -37,7 +42,12 @@ struct NoteTable: NSViewRepresentable {
         table.dataSource = context.coordinator
         table.delegate = context.coordinator
         table.setDraggingSourceOperationMask(.move, forLocal: true)
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.delegate = context.coordinator
+        table.menu = menu
         context.coordinator.table = table
+        context.coordinator.startTrackingClicks()
 
         let scroll = NSScrollView()
         scroll.documentView = table
@@ -51,39 +61,70 @@ struct NoteTable: NSViewRepresentable {
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         context.coordinator.onSelect = onSelect
+        context.coordinator.onMove = onMove
+        context.coordinator.onDelete = onDelete
+        context.coordinator.onDuplicate = onDuplicate
+        context.coordinator.onOpenInNewWindow = onOpenInNewWindow
         context.coordinator.apply(
             groups: groups,
             selectedID: selectedID,
             query: query,
             showsResultFolder: showsResultFolder,
-            folderNames: folderNames
+            folderNames: folderNames,
+            folders: folders
         )
     }
 
-    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
         static let columnID = NSUserInterfaceItemIdentifier("note")
 
-        weak var table: NSTableView?
+        weak var table: NoteListView?
+        private var clickMonitor: Any?
         var onSelect: (String) -> Void = { _ in }
+        var onMove: (String, String) -> Void = { _, _ in }
+        var onDelete: (String) -> Void = { _ in }
+        var onDuplicate: (String) -> Void = { _ in }
+        var onOpenInNewWindow: (String) -> Void = { _ in }
+        private var contextNoteID: String?
         private var rows: [Row] = []
         private var signature = ""
         private var selectedID: String?
         private var query = ""
         private var showsResultFolder = false
         private var folderNames: [String: String] = [:]
+        private var folders: [Folder] = []
         private var suppress = false
+
+        deinit {
+            if let clickMonitor {
+                NSEvent.removeMonitor(clickMonitor)
+            }
+        }
+
+        /// Clicks in the list use the accent fill. A click in the note, or anywhere else, switches it to gray.
+        func startTrackingClicks() {
+            guard clickMonitor == nil else { return }
+            clickMonitor = NSEvent.addLocalMonitorForEvents(
+                matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+            ) { [weak self] event in
+                self?.trackClick(event)
+                return event
+            }
+        }
 
         func apply(
             groups: [NoteCalendar.Group],
             selectedID: String?,
             query: String,
             showsResultFolder: Bool,
-            folderNames: [String: String]
+            folderNames: [String: String],
+            folders: [Folder]
         ) {
             self.selectedID = selectedID
             self.query = query
             self.showsResultFolder = showsResultFolder
             self.folderNames = folderNames
+            self.folders = folders
             let next = Self.flatten(groups, query: query, folderNames: folderNames)
             let nextSignature = "\(showsResultFolder)\n" + next.map(\.signature).joined(separator: "\n")
             if nextSignature != signature {
@@ -103,7 +144,7 @@ struct NoteTable: NSViewRepresentable {
             case .header:
                 44
             case .note:
-                showsSearchResult ? 70 : 56
+                showsSearchResult ? NoteListMetrics.searchRowHeight : NoteListMetrics.rowHeight
             }
         }
 
@@ -120,9 +161,9 @@ struct NoteTable: NSViewRepresentable {
                     ?? NoteRowCell()
                 cell.identifier = Self.columnID
                 let excerpt = NoteSearch.excerpt(in: note.searchText, query: query)
-                let detail = query.isEmpty || excerpt.isEmpty ? note.opening : excerpt
+                let detail = !query.isEmpty && !excerpt.isEmpty ? excerpt : NoteCalendar.listPreview(note.opening)
                 cell.configure(
-                    title: note.title.isEmpty ? "Untitled" : note.title,
+                    title: NoteCalendar.listTitle(note.title),
                     date: NoteCalendar.format(note),
                     detail: detail,
                     query: query,
@@ -207,6 +248,98 @@ struct NoteTable: NSViewRepresentable {
 
         private var showsSearchResult: Bool {
             showsResultFolder || !query.isEmpty
+        }
+
+        func menuNeedsUpdate(_ menu: NSMenu) {
+            menu.removeAllItems()
+            guard let table, table.clickedRow >= 0, table.clickedRow < rows.count,
+                  case .note(let note, _, _) = rows[table.clickedRow] else { return }
+            contextNoteID = note.id
+            if table.selectedRow != table.clickedRow {
+                table.selectRowIndexes(IndexSet(integer: table.clickedRow), byExtendingSelection: false)
+            }
+            menu.addItem(command("Open Note in New Window", symbol: "arrow.up.right.square", action: #selector(openContextNoteInNewWindow(_:))))
+            menu.addItem(.separator())
+            menu.addItem(command("Duplicate Note", symbol: "plus.square.on.square", action: #selector(duplicateContextNote(_:))))
+            menu.addItem(.separator())
+            menu.addItem(moveMenu(excluding: note.folderID))
+            menu.addItem(.separator())
+            menu.addItem(command("Delete", symbol: "trash", action: #selector(deleteContextNote(_:))))
+        }
+
+        @objc func deleteContextNote(_ sender: Any?) {
+            guard let contextNoteID else { return }
+            onDelete(contextNoteID)
+        }
+
+        @objc func moveContextNote(_ sender: NSMenuItem) {
+            guard let contextNoteID, let folderID = sender.representedObject as? String else { return }
+            onMove(contextNoteID, folderID)
+        }
+
+        @objc func openContextNoteInNewWindow(_ sender: Any?) {
+            guard let contextNoteID else { return }
+            onOpenInNewWindow(contextNoteID)
+        }
+
+        @objc func duplicateContextNote(_ sender: Any?) {
+            guard let contextNoteID else { return }
+            onDuplicate(contextNoteID)
+        }
+
+        private func command(_ title: String, symbol: String, action: Selector) -> NSMenuItem {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+            item.target = self
+            item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+            return item
+        }
+
+        private func moveMenu(excluding currentFolderID: String?) -> NSMenuItem {
+            let item = command("Move to", symbol: "folder", action: #selector(moveContextNote(_:)))
+            item.action = nil
+            item.target = nil
+            let submenu = NSMenu()
+            submenu.autoenablesItems = false
+            for entry in Self.folderEntries(folders) {
+                let destination = NSMenuItem(title: entry.folder.name, action: #selector(moveContextNote(_:)), keyEquivalent: "")
+                destination.target = self
+                destination.representedObject = entry.folder.id
+                destination.indentationLevel = entry.depth
+                destination.isEnabled = entry.folder.id != currentFolderID
+                submenu.addItem(destination)
+            }
+            item.submenu = submenu
+            item.isEnabled = !submenu.items.isEmpty
+            return item
+        }
+
+        private static func folderEntries(_ folders: [Folder]) -> [(folder: Folder, depth: Int)] {
+            let grouped = Dictionary(grouping: folders, by: { $0.parentID ?? "" })
+            func ordered(_ parent: String) -> [Folder] {
+                (grouped[parent] ?? []).sorted { left, right in
+                    if left.position != right.position { return left.position < right.position }
+                    return left.name.localizedCaseInsensitiveCompare(right.name) == .orderedAscending
+                }
+            }
+            var entries: [(folder: Folder, depth: Int)] = []
+            func walk(_ parent: String, depth: Int) {
+                for folder in ordered(parent) {
+                    entries.append((folder, depth))
+                    walk(folder.id, depth: depth + 1)
+                }
+            }
+            walk("", depth: 0)
+            return entries
+        }
+
+        private func trackClick(_ event: NSEvent) {
+            guard let table, let eventWindow = event.window, !eventWindow.className.contains("Menu") else { return }
+            let host = table.enclosingScrollView ?? table
+            let inList = eventWindow === table.window && host.bounds.contains(host.convert(event.locationInWindow, from: nil))
+            let quiet = !inList
+            guard table.noteSelectionIsQuiet != quiet else { return }
+            table.noteSelectionIsQuiet = quiet
+            table.refreshSelectionAppearance()
         }
 
         private static let headerID = NSUserInterfaceItemIdentifier("header")
@@ -297,5 +430,47 @@ private final class NoteHeaderCell: NSTableCellView {
 
     private func refreshDivider() {
         divider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+    }
+}
+
+/// The note list. A click in the list draws the selection in the accent color. A click elsewhere draws it gray.
+final class NoteListView: NSTableView {
+    /// Starts quiet because the note column opens with the editor active.
+    var noteSelectionIsQuiet = true
+    private var keyObservers: [NSObjectProtocol] = []
+
+    /// Accent fill while the list is the column that was just clicked, and the window is key.
+    var showsAccentSelection: Bool {
+        guard let window, window.isKeyWindow else { return false }
+        return !noteSelectionIsQuiet
+    }
+
+    func refreshSelectionAppearance() {
+        enumerateAvailableRowViews { rowView, _ in
+            (rowView as? NotesSelectionRow)?.updateSelectionAppearance()
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        for observer in keyObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        keyObservers.removeAll()
+        guard let window else { return }
+        let names = [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification]
+        for name in names {
+            keyObservers.append(
+                NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
+                    self?.refreshSelectionAppearance()
+                }
+            )
+        }
+    }
+
+    deinit {
+        for observer in keyObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 }

@@ -2,9 +2,13 @@
 
 A local Mac app for the imported Pythonidaer library. The window has three columns: folders, the note list, and the note. A folder can contain folders and notes. A note is in one folder, or in none. All notes is a view of every note.
 
-New notes go in the selected folder. When All notes is selected, a new note goes in Comedy. Deleting a folder asks first, then moves its notes and child folders up. Notes and audio files stay.
+New notes go in the selected folder. When All notes is selected, a new note goes in Comedy. Deleting a folder asks first, then deletes that folder, the folders inside it, and their notes. Audio files stay on disk.
 
 The database is `~/Library/Application Support/com.pythonidaer.notes/notes.sqlite`. Audio files stay in `/Users/johnnyhammond/Documents/notesnursery/notes-export/note-audio` and are not copied. The export is imported once. Playback uses the last segment of the storage path and checks that the file stays in that folder.
+
+## Build
+
+Quit this app, then run `npm run app`. That is the Xcode build and open in one command. It sets `DEVELOPER_DIR` to `/Applications/Xcode.app/Contents/Developer`, builds the Notes scheme into `macos/.derived`, and opens `macos/.derived/Build/Products/Debug/Notes.app`. The Xcode build also rebuilds the editor. `npm run build` builds only the editor. Do not quit `/System/Applications/Notes.app`.
 
 The note bar has a Search field on the trailing side. It is the library search for the note list, and the only search field. It is the Apple Notes capsule: a magnifying glass, the placeholder Search, and a clear button once there is text. A click focuses it. While the field is empty, the suggestions menu lists Notes with Checklists and Notes with Attachments. Typing filters the list in the selected folder. The clear button empties the query and the list returns to the folder. Search matches the title, the note text, and attachment names, including an audio filename. Each word matches on its own. Command-F finds inside the open note and does not filter the list. Recording, OCR, cards, Voice Recorder, Memorize by Heart, Bluetooth sync, and laugh-aware transcription stay out. Share and lock stay out.
 
@@ -12,7 +16,7 @@ The note bar has a Search field on the trailing side. It is the library search f
 
 Folders replaced labels. The open database was migrated in place: 158 notes, 20 root folders, no label tables, 43 audio display names. Comedy is still `4102f124-0352-4bb6-afef-05f745b0bd82`. A note that had Comedy is in Comedy. Otherwise it is in its earliest former label. One note has no folder and still appears in All notes. Do not migrate or import again. Do not modify Notes Nursery. Do not create, migrate, or import `notes.sqlite`.
 
-Swift is the app, bundle `com.pythonidaer.notes.swift`. It refuses to create, migrate, or import the database. Build with Xcode (`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`) and derived data `macos/.derived`. Open `macos/.derived/Build/Products/Debug/Notes.app`. Do not quit `/System/Applications/Notes.app`.
+Swift is the app, bundle `com.pythonidaer.notes.swift`. It refuses to create, migrate, or import the database. Quit this app and run `npm run app` to build and open it. Do not quit `/System/Applications/Notes.app`.
 
 A save writes `title`, `body_html`, `created_at_source`, and `updated_at`. It does not write `modified_at_source`, so the list date stays the original Apple date.
 

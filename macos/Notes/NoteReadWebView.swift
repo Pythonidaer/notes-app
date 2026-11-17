@@ -68,7 +68,10 @@ final class AudioSchemeHandler: NSObject, WKURLSchemeHandler {
             else {
                 throw AudioPathError.invalid
             }
-            let file = try AudioLocator.fileURL(storagePath: storagePath, root: AudioLocator.audioRoot)
+            let file = try AudioLocator.fileURL(
+                storagePath: storagePath,
+                roots: [AudioLocator.copyRoot, AudioLocator.audioRoot]
+            )
             let data = try Data(contentsOf: file)
             let mime = mimeType(for: file)
             let header = urlSchemeTask.request.value(forHTTPHeaderField: "Range")

@@ -8,6 +8,8 @@ final class LibraryStore: ObservableObject {
         let title: String
         let message: String
         let confirmTitle: String
+        /// A destructive confirm button is red. Folder delete uses the accent button.
+        var isDestructive = true
         let action: () -> Void
     }
 
@@ -47,6 +49,15 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    /// The stored note for `id`, or nil when that note is not in the library.
+    ///
+    /// Reads the open database. Callers use this for a second window so the main window's
+    /// selected note stays where it is.
+    func note(id: String) -> NoteDetail? {
+        guard notes.contains(where: { $0.id == id }) else { return nil }
+        return try? database?.note(id: id)
+    }
+
     func notesInSelectedFolder() -> [NoteSummary] {
         guard let folderID else { return notes }
         return notes.filter { $0.folderID == folderID }
@@ -69,6 +80,22 @@ final class LibraryStore: ObservableObject {
 
     func count(in folderID: String) -> Int {
         notes.filter { $0.folderID == folderID }.count
+    }
+
+    /// Creates a note when the open folder has none, so a click in the blank note column can start typing.
+    func startNoteInEmptyFolder() {
+        guard !isSearching, selectedNoteID == nil, notesInSelectedFolder().isEmpty else { return }
+        createNote()
+    }
+
+    /// Shows this folder, or every note when `id` is nil.
+    ///
+    /// The open note stays when it is in the folder. Otherwise the first note in the list opens.
+    /// An empty folder clears the note, so the detail column is blank until it is clicked.
+    func selectFolder(_ id: String?) {
+        guard folderID != id else { return }
+        folderID = id
+        showNoteInCurrentFolder()
     }
 
     func selectNote(_ id: String) {
@@ -115,6 +142,7 @@ final class LibraryStore: ObservableObject {
             let created = try database.createFolder(name: name, parentID: parentID)
             try reload(database)
             folderID = created.id
+            showNoteInCurrentFolder()
         }
     }
 
@@ -128,11 +156,38 @@ final class LibraryStore: ObservableObject {
     func askToDeleteFolder() {
         guard let folder = selectedFolder else { return }
         confirmation = Confirmation(
-            title: "Delete folder",
-            message: "Delete this folder? Notes stay.",
-            confirmTitle: "Delete"
+            title: "Are you sure you want to delete this folder?",
+            message: "All notes and any subfolders will be deleted.",
+            confirmTitle: "Delete",
+            isDestructive: false
         ) { [weak self] in
             self?.deleteFolder(id: folder.id)
+        }
+    }
+
+    func duplicateNote(_ id: String) {
+        let keptFolder = folderID
+        perform { database in
+            let copy = try database.duplicateNote(id: id)
+            try reload(database)
+            folderID = keptFolder
+            selectedNoteID = copy.id
+            note = copy
+            editing = false
+        }
+    }
+
+    func moveNote(_ id: String, to folderID: String) {
+        guard notes.first(where: { $0.id == id })?.folderID != folderID else { return }
+        let keptFolder = self.folderID
+        perform { database in
+            let moved = try database.moveNote(id: id, folderID: folderID)
+            try reload(database)
+            self.folderID = keptFolder
+            if note?.id == id {
+                note = moved
+            }
+            showNoteInCurrentFolder()
         }
     }
 
@@ -140,7 +195,7 @@ final class LibraryStore: ObservableObject {
         guard let note else { return }
         confirmation = Confirmation(
             title: "Delete note",
-            message: "Delete this note? Audio files stay.",
+            message: note.deleteConfirmationMessage,
             confirmTitle: "Delete"
         ) { [weak self] in
             self?.deleteNote(id: note.id)
@@ -151,8 +206,9 @@ final class LibraryStore: ObservableObject {
         perform { database in
             try database.performDrop(raw: raw, on: anchor, zone: zone)
             try reload(database)
-            if let selectedNoteID {
-                self.note = try database.note(id: selectedNoteID)
+            showNoteInCurrentFolder()
+            if let selectedNoteID, note?.id == selectedNoteID {
+                note = try database.note(id: selectedNoteID)
             }
         }
     }
@@ -165,9 +221,7 @@ final class LibraryStore: ObservableObject {
                 folderID = parent
             }
             try reload(database)
-            if let selectedNoteID {
-                note = try? database.note(id: selectedNoteID)
-            }
+            showNoteInCurrentFolder()
         }
     }
 
@@ -191,6 +245,34 @@ final class LibraryStore: ObservableObject {
                 note = nil
             }
         }
+    }
+
+    /// Opens a note that belongs in the current folder, or clears the column when none does.
+    private func showNoteInCurrentFolder() {
+        var arrangement = listArrangement
+        if isSearching {
+            arrangement.grouping = .groupsOff
+        }
+        let nextID = NoteCalendar.noteIDForSelection(
+            in: notesMatchingSearch(),
+            selectedID: selectedNoteID,
+            arrangement: arrangement
+        )
+        if nextID == selectedNoteID, note?.id == nextID {
+            return
+        }
+        if let nextID {
+            selectNote(nextID)
+        } else {
+            clearOpenNote()
+        }
+    }
+
+    private func clearOpenNote() {
+        selectedNoteID = nil
+        note = nil
+        editing = false
+        status = ""
     }
 
     private func reload(_ database: LibraryDatabase) throws {

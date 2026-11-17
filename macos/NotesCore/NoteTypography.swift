@@ -66,6 +66,10 @@ enum NoteTypography {
     static let noteSearchSuggestionSize: CGFloat = 13
     static let noteSearchSuggestionWeight = NSFont.Weight.regular
 
+    /// Measured in Notes. "No Notes" is 17 pt regular, the Title 2 size, in the tertiary label color.
+    static let emptyNoteListSize: CGFloat = 17
+    static let emptyNoteListWeight = NSFont.Weight.regular
+
     static var editorTitle: NSFont {
         NSFont.systemFont(ofSize: editorTitleSize, weight: editorTitleWeight)
     }
@@ -120,6 +124,10 @@ enum NoteTypography {
 
     static var noteSearchSuggestion: NSFont {
         NSFont.systemFont(ofSize: noteSearchSuggestionSize, weight: noteSearchSuggestionWeight)
+    }
+
+    static var emptyNoteList: NSFont {
+        NSFont.systemFont(ofSize: emptyNoteListSize, weight: emptyNoteListWeight)
     }
 
     /// CSS `font-weight` for a system font weight.

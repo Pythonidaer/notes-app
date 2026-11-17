@@ -43,6 +43,13 @@ final class EditorBridge: ObservableObject {
         _ = try? await webView.evaluateJavaScript("window.notesEditor.format(\(literal))")
     }
 
+    /// Puts the insertion point at the start of the note so typing begins in the title.
+    func focusAtStart() async {
+        guard let webView else { return }
+        webView.window?.makeFirstResponder(webView)
+        _ = try? await webView.evaluateJavaScript("window.notesEditor.focusStart()")
+    }
+
     func insertHTML(_ html: String) async {
         guard let webView, let literal = jsonLiteral(html) else { return }
         _ = try? await webView.evaluateJavaScript("window.notesEditor.insertHTML(\(literal))")
@@ -205,13 +212,31 @@ struct NoteEditorWebView: NSViewRepresentable {
         confineScrollingToVertical(webView)
         context.coordinator.onReady = onReady
         context.coordinator.onNoteChange = onNoteChange
-        context.coordinator.title = title
-        context.coordinator.html = html
         context.coordinator.dateHeading = dateHeading
-        guard context.coordinator.noteID != noteID || context.coordinator.appliedHTML == nil else { return }
-        context.coordinator.noteID = noteID
+        if context.coordinator.noteID != noteID {
+            context.coordinator.noteID = noteID
+            context.coordinator.sync = NoteEditorSync()
+            context.coordinator.appliedHTML = nil
+            context.coordinator.title = title
+            context.coordinator.html = html
+            guard context.coordinator.pageReady else { return }
+            context.coordinator.apply(in: webView, announceReady: true)
+            return
+        }
+        guard context.coordinator.appliedHTML != nil else {
+            context.coordinator.title = title
+            context.coordinator.html = html
+            guard context.coordinator.pageReady else { return }
+            context.coordinator.apply(in: webView, announceReady: true)
+            return
+        }
+        guard let incoming = context.coordinator.sync.noteToApply(storedTitle: title, storedHTML: html) else {
+            return
+        }
+        context.coordinator.title = incoming.title
+        context.coordinator.html = incoming.html
         guard context.coordinator.pageReady else { return }
-        context.coordinator.apply(in: webView)
+        context.coordinator.apply(in: webView, announceReady: false)
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
@@ -224,6 +249,8 @@ struct NoteEditorWebView: NSViewRepresentable {
         var onNoteChange: (String, String) -> Void
         var pageReady = false
         var appliedHTML: String?
+        var sync = NoteEditorSync()
+        var loadGeneration = 0
         var server: EditorFileServer?
         let audio = AudioSchemeHandler()
 
@@ -248,7 +275,7 @@ struct NoteEditorWebView: NSViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             pageReady = true
             confineScrollingToVertical(webView)
-            apply(in: webView)
+            apply(in: webView, announceReady: true)
         }
 
         func webView(
@@ -274,10 +301,13 @@ struct NoteEditorWebView: NSViewRepresentable {
                   let data = body.data(using: .utf8),
                   let change = try? JSONDecoder().decode(EditorChange.self, from: data)
             else { return }
+            sync.didEdit(title: change.title, html: change.html)
             onNoteChange(change.title, change.html)
         }
 
-        func apply(in webView: WKWebView) {
+        func apply(in webView: WKWebView, announceReady: Bool) {
+            loadGeneration += 1
+            let generation = loadGeneration
             let noteID = noteID
             let title = title
             let html = html
@@ -285,11 +315,16 @@ struct NoteEditorWebView: NSViewRepresentable {
             Task { @MainActor in
                 do {
                     try await bridge.setNote(title: title, html: html, dateHeading: dateHeading, in: webView)
-                    guard self.noteID == noteID else { return }
+                    guard self.noteID == noteID, self.loadGeneration == generation else { return }
+                    let first = appliedHTML == nil
                     appliedHTML = html
-                    onReady()
+                    sync.didLoad(title: title, html: html)
+                    if announceReady || first {
+                        onReady()
+                    }
                 } catch {
-                    appliedHTML = nil
+                    guard self.noteID == noteID, self.loadGeneration == generation else { return }
+                    sync.didFailToLoad()
                 }
             }
         }

@@ -7,6 +7,34 @@ final class EditorRoundTripTests: XCTestCase {
     private let session = EditorSession()
 
     @MainActor
+    func testUndoStaysInTheOpenNote() async throws {
+        let webView = try await session.load(session.page)
+        try await session.evaluate(
+            "window.notesEditor.setNote(\(try session.json("Alpha")), \(try session.json("<p>One</p>")))",
+            in: webView
+        )
+        try await session.evaluate("window.notesEditor.insertText(\"!\")", in: webView)
+        try await session.evaluate(
+            "window.notesEditor.setNote(\(try session.json("Beta")), \(try session.json("<p>Two</p>")))",
+            in: webView
+        )
+        try await session.evaluate("window.notesEditor.undo()", in: webView)
+        let title = try await session.string("window.notesEditor.getTitle()", in: webView)
+        let html = try await session.string("window.notesEditor.getHTML()", in: webView)
+        XCTAssertEqual(title, "Beta")
+        XCTAssertTrue(html.contains("Two"), html)
+        XCTAssertFalse(html.contains("One"), html)
+
+        try await session.evaluate("window.notesEditor.insertText(\"!\")", in: webView)
+        try await session.evaluate("window.notesEditor.undo()", in: webView)
+        let undoneTitle = try await session.string("window.notesEditor.getTitle()", in: webView)
+        let undone = try await session.string("window.notesEditor.getHTML()", in: webView)
+        XCTAssertEqual(undoneTitle, "Beta")
+        XCTAssertTrue(undone.contains("Two"), undone)
+        XCTAssertFalse(undone.contains("!"), undone)
+    }
+
+    @MainActor
     func testSavedHtmlReopensWithTasksColorAndAudio() async throws {
         let index = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

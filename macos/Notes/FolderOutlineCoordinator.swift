@@ -4,7 +4,7 @@ final class FolderOutlineCoordinator: NSObject, NSOutlineViewDataSource, NSOutli
     NSMenuDelegate, NSTextFieldDelegate {
     static let columnID = NSUserInterfaceItemIdentifier("folder")
 
-    weak var outline: NSOutlineView?
+    weak var outline: FolderOutlineView?
     var roots: [OutlineItem] = []
     var itemsByID: [String: OutlineItem] = [:]
     var expanded: Set<String> = []
@@ -17,11 +17,14 @@ final class FolderOutlineCoordinator: NSObject, NSOutlineViewDataSource, NSOutli
     var onRename: (String, String) -> Void = { _, _ in }
     var onDrop: (String, DropAnchor, DropZone) -> Void = { _, _, _ in }
     var onDelete: (String) -> Void = { _ in }
+    private var sidebarClickMonitor: Any?
+    private weak var renamingField: NSTextField?
+    private var handlingRenameEnd = false
 
     func connect(_ store: LibraryStore) {
         onSelect = { id in
             Task { @MainActor in
-                store.folderID = id
+                store.selectFolder(id)
             }
         }
         onRename = { id, name in
@@ -84,6 +87,8 @@ final class FolderOutlineCoordinator: NSObject, NSOutlineViewDataSource, NSOutli
         cell.textField?.delegate = self
         cell.textField?.identifier = nil
         cell.textField?.isEditable = false
+        cell.textField?.isSelectable = false
+        cell.textField?.refusesFirstResponder = true
         switch row.kind {
         case .allNotes:
             cell.configure(symbol: "tray.full", title: "All notes", count: row.count, folderID: nil)
@@ -249,8 +254,11 @@ final class FolderOutlineCoordinator: NSObject, NSOutlineViewDataSource, NSOutli
         field.isSelectable = true
         field.isEditable = true
         field.delegate = self
+        renamingField = field
+        outline.sidebarSelectionIsQuiet = false
         outline.window?.makeFirstResponder(field)
         field.currentEditor()?.selectedRange = NSRange(location: 0, length: field.stringValue.utf16.count)
+        outline.refreshSelectionAppearance()
     }
 
     @objc func deleteSelectedFolder(_ sender: Any?) {
@@ -259,18 +267,114 @@ final class FolderOutlineCoordinator: NSObject, NSOutlineViewDataSource, NSOutli
     }
 
     func controlTextDidEndEditing(_ notification: Notification) {
-        guard let field = notification.object as? NSTextField else { return }
+        guard let field = notification.object as? NSTextField, !handlingRenameEnd else { return }
+        handlingRenameEnd = true
+        defer { handlingRenameEnd = false }
+        closeRenameField(field)
+        guard let id = field.identifier?.rawValue, !id.isEmpty else { return }
+        guard let item = itemsByID[id], case .folder(let folder) = item.kind else { return }
+        let movement = (notification.userInfo?["NSTextMovement"] as? NSNumber)?.intValue
+        let trimmed = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        if movement == NSTextMovement.cancel.rawValue || trimmed.isEmpty || trimmed == folder.name {
+            field.stringValue = folder.name
+            return
+        }
+        field.stringValue = trimmed
+        onRename(id, trimmed)
+    }
+
+    /// Clicks in the notes list do not take first responder, so the field editor would stay up.
+    /// This watches the window and closes rename unless the click is on the name being edited.
+    func startTrackingSidebarClicks() {
+        guard sidebarClickMonitor == nil else { return }
+        sidebarClickMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { [weak self] event in
+            self?.trackSidebarClick(event)
+            return event
+        }
+    }
+
+    deinit {
+        if let sidebarClickMonitor {
+            NSEvent.removeMonitor(sidebarClickMonitor)
+        }
+    }
+
+    private func trackSidebarClick(_ event: NSEvent) {
+        guard let outline, let eventWindow = event.window, !eventIsMenu(eventWindow) else { return }
+        let inThisWindow = eventWindow === outline.window
+        if inThisWindow,
+           event.type == .leftMouseDown,
+           let field = renamingField,
+           eventHits(field, event) || eventHitsFieldEditor(field, event) {
+            return
+        }
+        let inSidebar = inThisWindow && eventHitsSidebar(event)
+        let wasRenaming = renamingField != nil
+        if let field = renamingField {
+            commitRenameField(field)
+        }
+        let quiet = !inSidebar
+        let changed = outline.sidebarSelectionIsQuiet != quiet
+        outline.sidebarSelectionIsQuiet = quiet
+        if wasRenaming || changed {
+            outline.refreshSelectionAppearance()
+        }
+        if quiet {
+            releaseSidebarFocus(outline)
+        }
+    }
+
+    private func commitRenameField(_ field: NSTextField) {
+        if field.currentEditor() != nil {
+            field.window?.endEditing(for: nil)
+        }
+        if field.currentEditor() != nil {
+            _ = field.window?.makeFirstResponder(nil)
+        }
+        closeRenameField(field)
+    }
+
+    /// Lets the click land first, then moves keyboard focus off the sidebar when it stayed there.
+    private func releaseSidebarFocus(_ outline: NSOutlineView) {
+        DispatchQueue.main.async { [weak outline] in
+            guard let outline, let window = outline.window else { return }
+            let responder = window.firstResponder
+            let sidebarFocused = responder === outline
+                || (responder as? NSView)?.isDescendant(of: outline) == true
+            guard sidebarFocused else { return }
+            _ = window.makeFirstResponder(nil)
+        }
+    }
+
+    private func eventIsMenu(_ window: NSWindow) -> Bool {
+        window.className.contains("Menu")
+    }
+
+    private func closeRenameField(_ field: NSTextField) {
         field.isEditable = false
         field.isSelectable = false
         field.refusesFirstResponder = true
-        guard let id = field.identifier?.rawValue, !id.isEmpty else { return }
-        let movement = (notification.userInfo?["NSTextMovement"] as? NSNumber)?.intValue
-        if movement == NSTextMovement.cancel.rawValue {
-            if let item = itemsByID[id], case .folder(let folder) = item.kind {
-                field.stringValue = folder.name
-            }
-            return
+        field.window?.invalidateCursorRects(for: field)
+        if renamingField === field {
+            renamingField = nil
         }
-        onRename(id, field.stringValue)
+    }
+
+    private func eventHits(_ view: NSView, _ event: NSEvent) -> Bool {
+        guard event.window === view.window else { return false }
+        return view.bounds.contains(view.convert(event.locationInWindow, from: nil))
+    }
+
+    private func eventHitsFieldEditor(_ field: NSTextField, _ event: NSEvent) -> Bool {
+        guard let editor = field.currentEditor() else { return false }
+        return eventHits(editor, event)
+    }
+
+    private func eventHitsSidebar(_ event: NSEvent) -> Bool {
+        guard let outline, event.window === outline.window else { return false }
+        let host = outline.enclosingScrollView ?? outline
+        return eventHits(host, event)
     }
 }

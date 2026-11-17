@@ -86,6 +86,97 @@ final class LibraryDatabase {
         return try note(id: id)
     }
 
+    /// A new note with the same title, body, and folder. Each audio clip is its own file.
+    func duplicateNote(
+        id: String,
+        audioRoots: [URL] = [AudioLocator.copyRoot, AudioLocator.audioRoot],
+        copyRoot: URL = AudioLocator.copyRoot
+    ) throws -> NoteDetail {
+        let source = try note(id: id)
+        let prepared = try copiedAudioBody(source.bodyHTML, audioRoots: audioRoots, copyRoot: copyRoot)
+        let copyID = UUID().uuidString.lowercased()
+        let now = Date()
+        let stored = Self.timestamp(now, timeZone: TimeZone(secondsFromGMT: 0) ?? .current)
+        let sourceStamp = Self.timestamp(now, timeZone: .current)
+        do {
+            try transaction {
+                try execute(
+                    """
+                    INSERT INTO notes (
+                        id, title, body_html, created_at, updated_at,
+                        created_at_source, modified_at_source, folder_id
+                    ) VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?5, ?6)
+                    """,
+                    [
+                        .text(copyID),
+                        .text(source.title),
+                        .text(prepared.html),
+                        .text(stored),
+                        .text(sourceStamp),
+                        source.folderID.map(Bound.text) ?? .null
+                    ]
+                )
+                for name in prepared.displayNames {
+                    try execute(
+                        """
+                        INSERT INTO audio_display_names (storage_path, display_name, updated_at)
+                        VALUES (?1, ?2, ?3)
+                        """,
+                        [.text(name.path), .text(name.display), .text(stored)]
+                    )
+                }
+            }
+        } catch {
+            for file in prepared.files {
+                try? FileManager.default.removeItem(at: file)
+            }
+            throw error
+        }
+        return try note(id: copyID)
+    }
+
+    /// Rewrites audio paths so the copy plays its own files. A missing clip keeps the original path.
+    private func copiedAudioBody(
+        _ html: String,
+        audioRoots: [URL],
+        copyRoot: URL
+    ) throws -> (html: String, files: [URL], displayNames: [(path: String, display: String)]) {
+        var result = html
+        var files: [URL] = []
+        var displayNames: [(path: String, display: String)] = []
+        var copied: [String: String] = [:]
+        do {
+            for clip in ReadingHTML.embeddedAudio(in: html) where !clip.storagePath.isEmpty {
+                let path = clip.storagePath
+                let newPath: String
+                if let existing = copied[path] {
+                    newPath = existing
+                } else {
+                    do {
+                        newPath = try AudioLocator.duplicateClip(storagePath: path, from: audioRoots, into: copyRoot)
+                    } catch is AudioPathError {
+                        continue
+                    }
+                    copied[path] = newPath
+                    files.append(copyRoot.appendingPathComponent(newPath, isDirectory: false))
+                    if let display = try displayName(storagePath: path), !display.isEmpty {
+                        displayNames.append((newPath, display))
+                    }
+                }
+                result = result.replacingOccurrences(
+                    of: "data-nn-storage-path=\"\(path)\"",
+                    with: "data-nn-storage-path=\"\(newPath)\""
+                )
+            }
+        } catch {
+            for file in files {
+                try? FileManager.default.removeItem(at: file)
+            }
+            throw error
+        }
+        return (result, files, displayNames)
+    }
+
     func saveNote(id: String, title: String, bodyHTML: String, createdAtSource: String) throws -> NoteDetail {
         let updated = Self.timestamp(Date(), timeZone: TimeZone(secondsFromGMT: 0) ?? .current)
         let changed = try execute(
@@ -170,22 +261,36 @@ final class LibraryDatabase {
         return try folder(id: id)
     }
 
+    /// Deletes the folder, every folder inside it, and the notes in those folders.
+    ///
+    /// Audio files on disk are left where they are.
     func deleteFolder(id: String) throws {
-        let parent = try parentOf(id)
-        let children = try siblingIDs(parentID: id, excluding: "")
-        var siblings = try siblingIDs(parentID: parent, excluding: id)
-        siblings.append(contentsOf: children)
-        try transaction {
-            try execute(
-                "UPDATE notes SET folder_id = ?1 WHERE folder_id = ?2",
-                [parent.map(Bound.text) ?? .null, .text(id)]
-            )
-            let changed = try execute("DELETE FROM folders WHERE id = ?1", [.text(id)])
-            guard changed > 0 else {
-                throw LibraryError.message("That folder is not in the library.")
-            }
-            try setSiblingOrder(parentID: parent, ids: siblings)
+        guard try folderExists(id) else {
+            throw LibraryError.message("That folder is not in the library.")
         }
+        let folderIDs = try containedFolderIDs(id)
+        try transaction {
+            for folderID in folderIDs {
+                try execute("DELETE FROM notes WHERE folder_id = ?1", [.text(folderID)])
+            }
+            for folderID in folderIDs.reversed() {
+                let changed = try execute("DELETE FROM folders WHERE id = ?1", [.text(folderID)])
+                guard changed > 0 else {
+                    throw LibraryError.message("That folder is not in the library.")
+                }
+            }
+        }
+    }
+
+    /// `id` and every folder nested inside it, with a folder before the folders it contains.
+    private func containedFolderIDs(_ id: String) throws -> [String] {
+        var ids = [id]
+        var index = 0
+        while index < ids.count {
+            ids.append(contentsOf: try siblingIDs(parentID: ids[index], excluding: ""))
+            index += 1
+        }
+        return ids
     }
 
     func moveFolder(id: String, parentID: String?, position: Int) throws {

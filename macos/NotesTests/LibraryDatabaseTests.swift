@@ -59,6 +59,134 @@ final class LibraryDatabaseTests: XCTestCase {
         XCTAssertEqual(note.title, "")
     }
 
+    func testDuplicateNoteCopiesContentAndLeavesTheOriginal() throws {
+        let (url, database) = try Fixture.importedLibrary()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let draft = try database.createFolder(name: "Draft")
+        let created = try database.createNote(folderID: draft.id)
+        let saved = try database.saveNote(
+            id: created.id,
+            title: "Set list",
+            bodyHTML: "<p>Hello there</p>",
+            createdAtSource: "Wednesday, June 3, 2026 at 8:10:03 PM"
+        )
+        let copy = try database.duplicateNote(id: saved.id)
+        XCTAssertNotEqual(copy.id, saved.id)
+        XCTAssertEqual(copy.title, "Set list")
+        XCTAssertEqual(copy.bodyHTML, "<p>Hello there</p>")
+        XCTAssertEqual(copy.folderID, draft.id)
+        XCTAssertNotEqual(copy.createdAtSource, saved.createdAtSource)
+        let original = try database.note(id: saved.id)
+        XCTAssertEqual(original.title, saved.title)
+        XCTAssertEqual(original.bodyHTML, saved.bodyHTML)
+        XCTAssertEqual(original.createdAtSource, saved.createdAtSource)
+        XCTAssertEqual(original.folderID, draft.id)
+        XCTAssertEqual(try database.library().notes.filter { $0.title == "Set list" }.count, 2)
+    }
+
+    func testDuplicateNoteKeepsAnUnfiledNoteUnfiled() throws {
+        let (url, database) = try Fixture.importedLibrary()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let created = try database.createNote(folderID: nil)
+        try database.performDrop(raw: "note:\(created.id)", on: .allNotes, zone: .child)
+        let copy = try database.duplicateNote(id: created.id)
+        XCTAssertNil(copy.folderID)
+        XCTAssertNil(try database.note(id: created.id).folderID)
+    }
+
+    func testDuplicateNoteCopiesTheAudioFileAndLeavesTheOriginal() throws {
+        let (url, database) = try Fixture.importedLibrary()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let sourceRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("audio-src-\(UUID().uuidString)", isDirectory: true)
+        let copyRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("audio-copy-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: sourceRoot) }
+        defer { try? FileManager.default.removeItem(at: copyRoot) }
+        try FileManager.default.createDirectory(at: sourceRoot, withIntermediateDirectories: true)
+        let clip = sourceRoot.appendingPathComponent("Confidence.mp3")
+        let bytes = Data("audio-bytes".utf8)
+        try bytes.write(to: clip)
+        let created = try database.createNote(folderID: nil)
+        let html = """
+        <figure data-nn-storage-path="user/Confidence.mp3" data-nn-file-name="Confidence.mp3" \
+        class="nn-audio-embed"></figure><p>Hello</p>
+        """
+        _ = try database.saveNote(
+            id: created.id,
+            title: "Set list",
+            bodyHTML: html,
+            createdAtSource: created.createdAtSource
+        )
+        try database.execute(
+            "INSERT INTO audio_display_names (storage_path, display_name, updated_at) VALUES (?1, ?2, ?3)",
+            [.text("user/Confidence.mp3"), .text("Stage whisper"), .text("2020-01-01T00:00:00Z")]
+        )
+        let copy = try database.duplicateNote(id: created.id, audioRoots: [sourceRoot], copyRoot: copyRoot)
+        let clips = ReadingHTML.embeddedAudio(in: copy.bodyHTML)
+        XCTAssertEqual(clips.count, 1)
+        let newPath = clips[0].storagePath
+        XCTAssertNotEqual(newPath, "user/Confidence.mp3")
+        XCTAssertFalse(copy.bodyHTML.contains("user/Confidence.mp3"))
+        XCTAssertEqual(try Data(contentsOf: copyRoot.appendingPathComponent(newPath)), bytes)
+        XCTAssertEqual(try Data(contentsOf: clip), bytes)
+        XCTAssertEqual(try database.note(id: created.id).bodyHTML, html)
+        XCTAssertEqual(try database.displayName(storagePath: newPath), "Stage whisper")
+        XCTAssertEqual(try database.displayName(storagePath: "user/Confidence.mp3"), "Stage whisper")
+    }
+
+    func testDuplicateNoteKeepsAMissingAudioPath() throws {
+        let (url, database) = try Fixture.importedLibrary()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let emptyRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("audio-empty-\(UUID().uuidString)", isDirectory: true)
+        let copyRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("audio-copy-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: emptyRoot) }
+        defer { try? FileManager.default.removeItem(at: copyRoot) }
+        try FileManager.default.createDirectory(at: emptyRoot, withIntermediateDirectories: true)
+        let created = try database.createNote(folderID: nil)
+        let html = #"<figure data-nn-storage-path="clip.mp3" class="nn-audio-embed"></figure>"#
+        _ = try database.saveNote(
+            id: created.id,
+            title: "Set list",
+            bodyHTML: html,
+            createdAtSource: created.createdAtSource
+        )
+        let copy = try database.duplicateNote(id: created.id, audioRoots: [emptyRoot], copyRoot: copyRoot)
+        XCTAssertEqual(copy.bodyHTML, html)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: copyRoot.path))
+    }
+
+    func testDeleteConfirmationMentionsAudioOnlyWhenTheNoteHasAClip() {
+        let plain = NoteDetail(
+            id: "plain",
+            title: "",
+            bodyHTML: "<p>Hi</p>",
+            createdAtSource: "",
+            modifiedAtSource: "",
+            folderID: nil
+        )
+        XCTAssertEqual(plain.deleteConfirmationMessage, "Delete this note?")
+        let clip = NoteDetail(
+            id: "clip",
+            title: "",
+            bodyHTML: #"<figure data-nn-storage-path="clip.mp3" class="nn-audio-embed"></figure>"#,
+            createdAtSource: "",
+            modifiedAtSource: "",
+            folderID: nil
+        )
+        XCTAssertEqual(clip.deleteConfirmationMessage, "Delete this note? Audio files stay.")
+    }
+
+    func testDuplicateNoteRejectsAMissingNote() throws {
+        let (url, database) = try Fixture.importedLibrary()
+        defer { try? FileManager.default.removeItem(at: url) }
+        XCTAssertThrowsError(try database.duplicateNote(id: "missing")) { error in
+            XCTAssertEqual(error as? LibraryError, .message("That note is not in the library."))
+        }
+    }
+
     func testDropMovesANoteIntoAFolderAndAllNotesClearsIt() throws {
         let (url, database) = try Fixture.importedLibrary()
         defer { try? FileManager.default.removeItem(at: url) }
@@ -95,28 +223,33 @@ final class LibraryDatabaseTests: XCTestCase {
         }
     }
 
-    func testDeleteFolderMovesNotesAndChildFoldersUp() throws {
+    func testDeleteFolderDeletesNotesAndSubfolders() throws {
         let (url, database) = try Fixture.importedLibrary()
         defer { try? FileManager.default.removeItem(at: url) }
         let parent = try database.createFolder(name: "Parent")
         let child = try database.createFolder(name: "Child")
         try database.moveFolder(id: child.id, parentID: parent.id, position: 0)
-        let note = try database.createNote(folderID: child.id)
+        let grandchild = try database.createFolder(name: "Grandchild")
+        try database.moveFolder(id: grandchild.id, parentID: child.id, position: 0)
+        let keptFolder = try database.createFolder(name: "Kept")
+        let inParent = try database.createNote(folderID: parent.id)
+        let inChild = try database.createNote(folderID: child.id)
+        let inGrandchild = try database.createNote(folderID: grandchild.id)
+        let kept = try database.createNote(folderID: keptFolder.id)
         let audio = FileManager.default.temporaryDirectory.appendingPathComponent("stays-\(UUID().uuidString).mp3")
         try Data("audio".utf8).write(to: audio)
         defer { try? FileManager.default.removeItem(at: audio) }
 
-        try database.deleteFolder(id: child.id)
-        XCTAssertEqual(try database.note(id: note.id).folderID, parent.id)
-        let movedChild = try database.library().folders.first { $0.id == child.id }
-        XCTAssertNil(movedChild)
-        let grandchild = try database.createFolder(name: "Kept")
-        try database.moveFolder(id: grandchild.id, parentID: parent.id, position: 0)
         try database.deleteFolder(id: parent.id)
-        XCTAssertNil(try database.note(id: note.id).folderID)
-        XCTAssertNil(try database.library().folders.first { $0.id == grandchild.id }?.parentID)
-        try database.deleteNote(id: note.id)
-        XCTAssertThrowsError(try database.note(id: note.id))
+
+        for id in [parent.id, child.id, grandchild.id] {
+            XCTAssertNil(try database.library().folders.first { $0.id == id })
+        }
+        for id in [inParent.id, inChild.id, inGrandchild.id] {
+            XCTAssertThrowsError(try database.note(id: id))
+        }
+        XCTAssertEqual(try database.note(id: kept.id).folderID, keptFolder.id)
+        XCTAssertNotNil(try database.library().folders.first { $0.id == keptFolder.id })
         XCTAssertTrue(FileManager.default.fileExists(atPath: audio.path))
     }
 

@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "vite --config macos/editor/vite.config.js build"
+    "build": "vite --config macos/editor/vite.config.js build",
+    "app": "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project macos/Notes.xcodeproj -scheme Notes -destination 'platform=macOS' -derivedDataPath macos/.derived build && open macos/.derived/Build/Products/Debug/Notes.app"
   },
   "dependencies": {
     "@tiptap/core": "^3.34.0",

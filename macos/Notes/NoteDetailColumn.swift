@@ -1,27 +1,8 @@
-import AppKit
-import Combine
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct NoteDetailColumn: View {
     @ObservedObject var store: LibraryStore
     @StateObject private var editor = EditorBridge()
-    @State private var latestTitle = ""
-    @State private var latestHTML = ""
-    /// Stays true after the first paint so a note click does not disable Aa or swap in the reading page.
-    @State private var editorReady = false
-    @State private var formatMenuShown = false
-    @State private var formatMenuClosedAt = Date.distantPast
-    @State private var highlightColor = NoteHighlight.purple
-    @State private var saveTask: Task<Void, Never>?
-    @State private var findBarShown = false
-    @State private var findQuery = ""
-    @State private var replaceQuery = ""
-    @State private var replaceShown = false
-    @State private var findCount = 0
-    @State private var findFocused = false
-    /// Height of the find panel, so the note starts under it instead of running through it.
-    @State private var findPanelHeight: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -31,28 +12,27 @@ struct NoteDetailColumn: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
             }
-            noteCanvas
+            NoteCanvas(
+                editor: editor,
+                note: openNote,
+                isLoading: store.selectedNoteID != nil && openNote == nil,
+                colorSchemeName: store.colorSchemeName,
+                focusWhenReady: store.editing,
+                onSave: { id, title, bodyHTML, createdAtSource in
+                    store.saveNote(
+                        id: id,
+                        title: title,
+                        bodyHTML: bodyHTML,
+                        createdAtSource: createdAtSource
+                    )
+                },
+                onEmptyClick: { store.startNoteInEmptyFolder() }
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onChange(of: store.note?.id) { _, _ in
-            loadDraft()
-            if store.note?.id == nil {
-                closeFindBar()
-            }
-        }
-        .onChange(of: findQuery) { _, _ in
-            guard findBarShown else { return }
-            Task { await refreshFind() }
-        }
-        .onChange(of: findBarShown) { _, shown in
-            if !shown { findPanelHeight = 0 }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .showNoteFind)) { _ in
-            showFindBar()
-        }
         .background {
             if store.colorSchemeName == "dark" {
-                noteFill
+                NoteChrome.noteFill(for: store.colorSchemeName)
             }
         }
         .toolbar {
@@ -66,27 +46,7 @@ struct NoteDetailColumn: View {
             if #available(macOS 26.0, *) {
                 ToolbarSpacer(.fixed, placement: .primaryAction)
             }
-            ToolbarItem(id: "format", placement: .primaryAction) {
-                ControlGroup {
-                    formatButton
-                    Button {
-                        Task { await editor.format("task") }
-                    } label: {
-                        Image(systemName: "checklist")
-                    }
-                    .help("Tasks")
-                    .disabled(!noteIsOpen)
-                    Button {
-                        Task { await editor.format("table") }
-                    } label: {
-                        Image(systemName: "tablecells")
-                    }
-                    .help("Table")
-                    .accessibilityLabel("Table")
-                    .disabled(!noteIsOpen)
-                    attachmentMenu
-                }
-            }
+            NoteFormatToolbarItem(editor: editor, enabled: noteIsOpen, noteID: openNote?.id)
             if #available(macOS 26.0, *) {
                 ToolbarSpacer(.fixed, placement: .primaryAction)
             }
@@ -102,121 +62,19 @@ struct NoteDetailColumn: View {
             }
             noteSearchItem
         }
-        .onAppear {
-            loadDraft()
-        }
     }
 
-    /// The note fills the column. The find panel is a layer on top of it, and the text starts below that layer.
-    private var noteCanvas: some View {
-        noteContent
-            .padding(.top, findInset)
-            .overlay(alignment: .top) {
-                if findBarShown, noteIsOpen {
-                    findPanel
-                }
-            }
-            .onPreferenceChange(FindPanelHeightKey.self) { findPanelHeight = $0 }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var noteContent: some View {
-        Group {
-            if let note = store.note, note.id == store.selectedNoteID {
-                ZStack {
-                    NoteReadWebView(
-                        html: note.bodyHTML,
-                        title: note.title,
-                        dateHeading: NoteCalendar.heading(note.createdAtSource),
-                        colorScheme: store.colorSchemeName
-                    )
-                    .opacity(editorReady ? 0 : 1)
-                    .allowsHitTesting(!editorReady)
-                    NoteEditorWebView(
-                        bridge: editor,
-                        noteID: note.id,
-                        title: note.title,
-                        html: note.bodyHTML,
-                        dateHeading: NoteCalendar.heading(note.createdAtSource),
-                        colorScheme: store.colorSchemeName,
-                        onReady: revealEditor,
-                        onNoteChange: { title, html in
-                            latestTitle = title
-                            latestHTML = html
-                            guard let note = store.note,
-                                  html != note.bodyHTML || title != note.title
-                            else { return }
-                            scheduleSave()
-                        }
-                    )
-                    .opacity(editorReady ? 1 : 0)
-                    .allowsHitTesting(editorReady)
-                    .animation(nil, value: editorReady)
-                }
-                .animation(nil, value: editorReady)
-                .padding(.horizontal, 20)
-            } else if store.selectedNoteID != nil {
-                ProgressView("Loading")
-            } else {
-                ContentUnavailableView("Select a note", systemImage: "note.text")
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var findPanel: some View {
-        NoteFindBar(
-            query: $findQuery,
-            replacement: $replaceQuery,
-            showsReplace: $replaceShown,
-            matchCount: findCount,
-            focused: findFocused,
-            onPrevious: { Task { await stepFind(by: -1) } },
-            onNext: { Task { await stepFind(by: 1) } },
-            onReplace: { Task { await replaceFind(everyMatch: false) } },
-            onReplaceAll: { Task { await replaceFind(everyMatch: true) } },
-            onDone: closeFindBar,
-            onFocusChange: { findFocused = $0 }
-        )
-        .padding(.horizontal, 6)
-        .padding(.top, 6)
-        .padding(.bottom, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(barFill)
-        .background {
-            GeometryReader { proxy in
-                Color.clear.preference(key: FindPanelHeightKey.self, value: proxy.size.height)
-            }
-        }
-    }
-
-    /// The note starts below the panel. Until the panel is measured, a stand-in keeps the title uncovered.
-    private var findInset: CGFloat {
-        guard findBarShown, noteIsOpen else { return 0 }
-        if findPanelHeight > 1 { return findPanelHeight }
-        return replaceShown ? 80 : 46
-    }
-
-    private var noteFill: Color {
-        if store.colorSchemeName == "dark" {
-            Color(red: 30.0 / 255, green: 30.0 / 255, blue: 30.0 / 255)
-        } else {
-            Color(nsColor: .textBackgroundColor)
-        }
-    }
-
-    /// The toolbar color, measured in dark mode. The find panel uses it so it is not the note.
-    private var barFill: Color {
-        if store.colorSchemeName == "dark" {
-            Color(red: 35.0 / 255, green: 40.0 / 255, blue: 43.0 / 255)
-        } else {
-            Color(nsColor: .windowBackgroundColor)
-        }
+    private var openNote: NoteDetail? {
+        guard let note = store.note, note.id == store.selectedNoteID else { return nil }
+        return note
     }
 
     private var noteIsOpen: Bool {
-        guard let selected = store.selectedNoteID else { return false }
-        return store.note?.id == selected
+        openNote != nil
+    }
+
+    private var statusMessage: String? {
+        store.status.isEmpty ? nil : store.status
     }
 
     @ToolbarContentBuilder
@@ -233,180 +91,5 @@ struct NoteDetailColumn: View {
                     .fixedSize()
             }
         }
-    }
-
-    private func revealEditor() {
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            editorReady = true
-        }
-    }
-
-    private var formatButton: some View {
-        Button {
-            if Date().timeIntervalSince(formatMenuClosedAt) < 0.3 {
-                return
-            }
-            formatMenuShown.toggle()
-        } label: {
-            FormatAaLabel()
-        }
-        .help("Format")
-        .accessibilityLabel("Format")
-        .disabled(!noteIsOpen)
-        .popover(isPresented: $formatMenuShown, arrowEdge: .top) {
-            FormatStyleMenu(editor: editor, chosen: $highlightColor)
-        }
-        .onChange(of: formatMenuShown) { _, shown in
-            if !shown {
-                formatMenuClosedAt = Date()
-            }
-        }
-    }
-
-    private var statusMessage: String? {
-        store.status.isEmpty ? nil : store.status
-    }
-
-    private var attachmentMenu: some View {
-        Menu {
-            Button(action: choosePhotoOrVideo) {
-                Label("Choose Photo or Video", systemImage: "photo.on.rectangle")
-            }
-            Button(action: recordAudio) {
-                Label("Record Audio", systemImage: "mic")
-            }
-            Button(action: attachFile) {
-                Label("Attach File", systemImage: "doc")
-            }
-        } label: {
-            Image(systemName: "paperclip")
-        }
-        .menuIndicator(.hidden)
-        .help("Attachment")
-        .accessibilityLabel("Attachment")
-        .disabled(!noteIsOpen)
-    }
-
-}
-
-extension NoteDetailColumn {
-    /// Recording stays out of this app. The row matches the Notes attachment menu and does not start a recording.
-    fileprivate func recordAudio() {}
-
-    fileprivate func choosePhotoOrVideo() {
-        presentAttachmentPanel(types: [.image, .movie])
-    }
-
-    fileprivate func attachFile() {
-        presentAttachmentPanel(types: nil)
-    }
-
-    fileprivate func presentAttachmentPanel(types: [UTType]?) {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = true
-        if let types {
-            panel.allowedContentTypes = types
-        }
-        guard panel.runModal() == .OK else { return }
-        let html = panel.urls.map { url in
-            let name = Self.escapedText(url.lastPathComponent)
-            let href = Self.escapedText(url.absoluteString)
-            return "<a href=\"\(href)\">\(name)</a>"
-        }.joined(separator: " ")
-        guard !html.isEmpty else { return }
-        Task { await editor.insertHTML(html) }
-    }
-
-    fileprivate static func escapedText(_ text: String) -> String {
-        text
-            .replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-    }
-
-    fileprivate func showFindBar() {
-        guard noteIsOpen else { return }
-        findBarShown = true
-        findFocused = true
-        Task { await refreshFind() }
-    }
-
-    fileprivate func closeFindBar() {
-        guard findBarShown || !findQuery.isEmpty else {
-            findBarShown = false
-            return
-        }
-        findBarShown = false
-        findCount = 0
-        findFocused = false
-        Task { await editor.clearFind() }
-    }
-
-    fileprivate func refreshFind() async {
-        guard findBarShown else { return }
-        findCount = await editor.updateFind(query: findQuery).count
-    }
-
-    fileprivate func stepFind(by delta: Int) async {
-        let summary = delta < 0 ? await editor.findPrevious() : await editor.findNext()
-        findCount = summary.count
-    }
-
-    fileprivate func replaceFind(everyMatch: Bool) async {
-        let summary = everyMatch
-            ? await editor.replaceEveryFind(with: replaceQuery)
-            : await editor.replaceFind(with: replaceQuery)
-        findCount = summary.count
-    }
-
-    fileprivate func loadDraft() {
-        formatMenuShown = false
-        latestTitle = store.note?.title ?? ""
-        latestHTML = store.note?.bodyHTML ?? ""
-        if store.note?.id != store.selectedNoteID {
-            editorReady = false
-        }
-    }
-
-    fileprivate func scheduleSave() {
-        guard let id = store.note?.id else { return }
-        let titleNow = latestTitle
-        let created = store.note?.createdAtSource ?? ""
-        let body = latestHTML
-        saveTask?.cancel()
-        saveTask = Task {
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            guard !Task.isCancelled else { return }
-            store.saveNote(id: id, title: titleNow, bodyHTML: body, createdAtSource: created)
-        }
-    }
-
-}
-
-private struct FindPanelHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-/// The capital A and smaller lowercase a on the Notes format button.
-private struct FormatAaLabel: View {
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: -0.5) {
-            Text("A")
-                .font(.system(size: 17, weight: .medium))
-            Text("a")
-                .font(.system(size: 12, weight: .regular))
-        }
-        .foregroundStyle(.primary)
-        .fixedSize()
-        .accessibilityHidden(true)
     }
 }

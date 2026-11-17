@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var store = LibraryStore()
+    @StateObject private var noteWindows = NoteWindowPresenter()
     @State private var columnVisibility = NavigationSplitViewVisibility.automatic
 
     var body: some View {
@@ -18,7 +19,9 @@ struct ContentView: View {
                 NavigationSplitView(columnVisibility: $columnVisibility) {
                     FolderSidebar(store: store, sidebarOpen: sidebarOpen)
                 } content: {
-                    NoteListColumn(store: store)
+                    NoteListColumn(store: store) { noteID in
+                        noteWindows.openNoteInNewWindow(noteID)
+                    }
                 } detail: {
                     NoteDetailColumn(store: store)
                 }
@@ -26,18 +29,31 @@ struct ContentView: View {
         }
         .preferredColorScheme(store.colorSchemeName == "dark" ? .dark : .light)
         .task {
+            noteWindows.connect(store)
             store.load()
         }
         .alert(
             store.confirmation?.title ?? "",
             isPresented: confirmationPresented
         ) {
-            Button(store.confirmation?.confirmTitle ?? "Delete", role: .destructive) {
-                store.confirmation?.action()
-            }
+            confirmButton
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(store.confirmation?.message ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private var confirmButton: some View {
+        let title = store.confirmation?.confirmTitle ?? "Delete"
+        if store.confirmation?.isDestructive == false {
+            Button(title) {
+                store.confirmation?.action()
+            }
+        } else {
+            Button(title, role: .destructive) {
+                store.confirmation?.action()
+            }
         }
     }
 

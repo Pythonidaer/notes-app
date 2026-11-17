@@ -6,6 +6,38 @@ enum AudioLocator {
         isDirectory: true
     )
 
+    /// Copies made by Duplicate Note. The imported export folder is left unchanged.
+    static var copyRoot: URL {
+        LibraryDatabase.libraryURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("note-audio", isDirectory: true)
+    }
+
+    /// The first root that contains the clip. A duplicate is found before the imported original.
+    static func fileURL(storagePath: String, roots: [URL]) throws -> URL {
+        for root in roots {
+            do {
+                return try fileURL(storagePath: storagePath, root: root)
+            } catch AudioPathError.missing {
+                continue
+            }
+        }
+        throw AudioPathError.missing
+    }
+
+    /// Copies the clip into `copyRoot` and returns the new storage path.
+    static func duplicateClip(storagePath: String, from roots: [URL], into copyRoot: URL) throws -> String {
+        let source = try fileURL(storagePath: storagePath, roots: roots)
+        let ext = source.pathExtension
+        let name = ext.isEmpty
+            ? UUID().uuidString.lowercased()
+            : "\(UUID().uuidString.lowercased()).\(ext)"
+        try FileManager.default.createDirectory(at: copyRoot, withIntermediateDirectories: true)
+        let destination = copyRoot.appendingPathComponent(name, isDirectory: false)
+        try FileManager.default.copyItem(at: source, to: destination)
+        return name
+    }
+
     static func fileURL(storagePath: String, root: URL) throws -> URL {
         let unescaped = unescape(storagePath.trimmingCharacters(in: .whitespacesAndNewlines))
         let segment = unescaped.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(String.init) ?? ""

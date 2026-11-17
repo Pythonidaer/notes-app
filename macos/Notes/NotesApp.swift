@@ -12,7 +12,7 @@ struct NotesApp: App {
         .commands {
             CommandGroup(after: .pasteboard) {
                 Button("Find") {
-                    NotificationCenter.default.post(name: .showNoteFind, object: nil)
+                    NotificationCenter.default.post(name: .showNoteFind, object: NSApp.keyWindow)
                 }
                 .keyboardShortcut("f", modifiers: .command)
             }
