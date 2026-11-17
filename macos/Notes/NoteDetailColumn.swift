@@ -20,6 +20,8 @@ struct NoteDetailColumn: View {
     @State private var replaceShown = false
     @State private var findCount = 0
     @State private var findFocused = false
+    /// Height of the find panel, so the note starts under it instead of running through it.
+    @State private var findPanelHeight: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -29,65 +31,7 @@ struct NoteDetailColumn: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
             }
-            if findBarShown, noteIsOpen {
-                NoteFindBar(
-                    query: $findQuery,
-                    replacement: $replaceQuery,
-                    showsReplace: $replaceShown,
-                    matchCount: findCount,
-                    focused: findFocused,
-                    onPrevious: { Task { await stepFind(by: -1) } },
-                    onNext: { Task { await stepFind(by: 1) } },
-                    onReplace: { Task { await replaceFind(everyMatch: false) } },
-                    onReplaceAll: { Task { await replaceFind(everyMatch: true) } },
-                    onDone: closeFindBar,
-                    onFocusChange: { findFocused = $0 }
-                )
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
-            }
-            if let note = store.note, note.id == store.selectedNoteID {
-                ZStack {
-                    NoteReadWebView(
-                        html: note.bodyHTML,
-                        title: note.title,
-                        dateHeading: NoteCalendar.heading(note.createdAtSource),
-                        colorScheme: store.colorSchemeName
-                    )
-                    .opacity(editorReady ? 0 : 1)
-                    .allowsHitTesting(!editorReady)
-                    NoteEditorWebView(
-                        bridge: editor,
-                        noteID: note.id,
-                        title: note.title,
-                        html: note.bodyHTML,
-                        dateHeading: NoteCalendar.heading(note.createdAtSource),
-                        colorScheme: store.colorSchemeName,
-                        onReady: revealEditor,
-                        onNoteChange: { title, html in
-                            latestTitle = title
-                            latestHTML = html
-                            guard let note = store.note,
-                                  html != note.bodyHTML || title != note.title
-                            else { return }
-                            scheduleSave()
-                        }
-                    )
-                    .opacity(editorReady ? 1 : 0)
-                    .allowsHitTesting(editorReady)
-                    .animation(nil, value: editorReady)
-                }
-                .animation(nil, value: editorReady)
-                .padding(.horizontal, 20)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if store.selectedNoteID != nil {
-                ProgressView("Loading")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ContentUnavailableView("Select a note", systemImage: "note.text")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            noteCanvas
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onChange(of: store.note?.id) { _, _ in
@@ -100,12 +44,15 @@ struct NoteDetailColumn: View {
             guard findBarShown else { return }
             Task { await refreshFind() }
         }
+        .onChange(of: findBarShown) { _, shown in
+            if !shown { findPanelHeight = 0 }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .showNoteFind)) { _ in
             showFindBar()
         }
         .background {
             if store.colorSchemeName == "dark" {
-                Color(red: 30.0 / 255, green: 30.0 / 255, blue: 30.0 / 255)
+                noteFill
             }
         }
         .toolbar {
@@ -160,8 +107,116 @@ struct NoteDetailColumn: View {
         }
     }
 
+    /// The note fills the column. The find panel is a layer on top of it, and the text starts below that layer.
+    private var noteCanvas: some View {
+        noteContent
+            .padding(.top, findInset)
+            .overlay(alignment: .top) {
+                if findBarShown, noteIsOpen {
+                    findPanel
+                }
+            }
+            .onPreferenceChange(FindPanelHeightKey.self) { findPanelHeight = $0 }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var noteContent: some View {
+        Group {
+            if let note = store.note, note.id == store.selectedNoteID {
+                ZStack {
+                    NoteReadWebView(
+                        html: note.bodyHTML,
+                        title: note.title,
+                        dateHeading: NoteCalendar.heading(note.createdAtSource),
+                        colorScheme: store.colorSchemeName
+                    )
+                    .opacity(editorReady ? 0 : 1)
+                    .allowsHitTesting(!editorReady)
+                    NoteEditorWebView(
+                        bridge: editor,
+                        noteID: note.id,
+                        title: note.title,
+                        html: note.bodyHTML,
+                        dateHeading: NoteCalendar.heading(note.createdAtSource),
+                        colorScheme: store.colorSchemeName,
+                        onReady: revealEditor,
+                        onNoteChange: { title, html in
+                            latestTitle = title
+                            latestHTML = html
+                            guard let note = store.note,
+                                  html != note.bodyHTML || title != note.title
+                            else { return }
+                            scheduleSave()
+                        }
+                    )
+                    .opacity(editorReady ? 1 : 0)
+                    .allowsHitTesting(editorReady)
+                    .animation(nil, value: editorReady)
+                }
+                .animation(nil, value: editorReady)
+                .padding(.horizontal, 20)
+            } else if store.selectedNoteID != nil {
+                ProgressView("Loading")
+            } else {
+                ContentUnavailableView("Select a note", systemImage: "note.text")
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var findPanel: some View {
+        NoteFindBar(
+            query: $findQuery,
+            replacement: $replaceQuery,
+            showsReplace: $replaceShown,
+            matchCount: findCount,
+            focused: findFocused,
+            onPrevious: { Task { await stepFind(by: -1) } },
+            onNext: { Task { await stepFind(by: 1) } },
+            onReplace: { Task { await replaceFind(everyMatch: false) } },
+            onReplaceAll: { Task { await replaceFind(everyMatch: true) } },
+            onDone: closeFindBar,
+            onFocusChange: { findFocused = $0 }
+        )
+        .padding(.horizontal, 6)
+        .padding(.top, 6)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(barFill)
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: FindPanelHeightKey.self, value: proxy.size.height)
+            }
+        }
+    }
+
+    /// The note starts below the panel. Until the panel is measured, a stand-in keeps the title uncovered.
+    private var findInset: CGFloat {
+        guard findBarShown, noteIsOpen else { return 0 }
+        if findPanelHeight > 1 { return findPanelHeight }
+        return replaceShown ? 80 : 46
+    }
+
+    private var noteFill: Color {
+        if store.colorSchemeName == "dark" {
+            Color(red: 30.0 / 255, green: 30.0 / 255, blue: 30.0 / 255)
+        } else {
+            Color(nsColor: .textBackgroundColor)
+        }
+    }
+
+    /// The toolbar color, measured in dark mode. The find panel uses it so it is not the note.
+    private var barFill: Color {
+        if store.colorSchemeName == "dark" {
+            Color(red: 35.0 / 255, green: 40.0 / 255, blue: 43.0 / 255)
+        } else {
+            Color(nsColor: .windowBackgroundColor)
+        }
+    }
+
     private var noteIsOpen: Bool {
-        store.note?.id == store.selectedNoteID
+        guard let selected = store.selectedNoteID else { return false }
+        return store.note?.id == selected
     }
 
     @ToolbarContentBuilder
@@ -331,6 +386,14 @@ extension NoteDetailColumn {
         }
     }
 
+}
+
+private struct FindPanelHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
 }
 
 /// The capital A and smaller lowercase a on the Notes format button.

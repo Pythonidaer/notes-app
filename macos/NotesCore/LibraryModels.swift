@@ -111,7 +111,10 @@ struct Folder: Identifiable, Equatable, Hashable {
     var createdAt: String
 }
 
-/// One row in the menu that opens when the note bar search field is focused and empty.
+/// One kind of note the search field can limit to.
+///
+/// The menu lists `menuScopes` only. Shared notes, locked notes, tags, drawings,
+/// and scanned documents match nothing in this library.
 enum NoteSearchScope: String, CaseIterable, Identifiable {
     case sharedNotes
     case lockedNotes
@@ -120,6 +123,9 @@ enum NoteSearchScope: String, CaseIterable, Identifiable {
     case drawings
     case scannedDocuments
     case attachments
+
+    /// Checklists, then attachments. The other cases stay out of the menu.
+    static let menuScopes: [NoteSearchScope] = [.checklists, .attachments]
 
     var id: String { rawValue }
 

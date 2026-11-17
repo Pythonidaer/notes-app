@@ -70,26 +70,101 @@ function findMatches(doc, query) {
   return ranges;
 }
 
+function matchClientRects(view, from, to) {
+  try {
+    const start = view.domAtPos(from);
+    const end = view.domAtPos(to);
+    const range = document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset);
+    return Array.from(range.getClientRects());
+  } catch {
+    return [];
+  }
+}
+
+// Real rectangles over the note. Inline box-shadows get clipped, so the sides disappear.
+class FindBoxes {
+  constructor(view) {
+    this.view = view;
+    this.signature = "";
+    this.layer = document.createElement("div");
+    this.layer.className = "find-highlights";
+    this.parent = view.dom.parentElement;
+    this.parent?.appendChild(this.layer);
+    this.paint = this.paint.bind(this);
+    this.observer = new ResizeObserver(this.paint);
+    this.observer.observe(view.dom);
+    document.addEventListener("scroll", this.paint, true);
+    this.paint();
+  }
+
+  update() {
+    this.paint();
+  }
+
+  paint() {
+    if (!this.layer.isConnected) return;
+    const found = noteFindKey.getState(this.view.state);
+    const origin = this.layer.getBoundingClientRect();
+    const boxes = [];
+    const padX = 2;
+    const padY = 1;
+    if (found?.matches.length) {
+      found.matches.forEach((match, index) => {
+        const current = index === found.index && found.index >= 0;
+        for (const rect of matchClientRects(this.view, match.from, match.to)) {
+          if (rect.width < 0.5 || rect.height < 0.5) continue;
+          const box = document.createElement("div");
+          box.className = current ? "find-highlight find-highlight-current" : "find-highlight";
+          const left = rect.left - origin.left - padX;
+          const top = rect.top - origin.top - padY;
+          const width = rect.width + padX * 2;
+          const height = rect.height + padY * 2;
+          box.style.left = `${left}px`;
+          box.style.top = `${top}px`;
+          box.style.width = `${width}px`;
+          box.style.height = `${height}px`;
+          boxes.push(box);
+        }
+      });
+    }
+    const signature = boxes.map((box) => `${box.className}:${box.style.cssText}`).join(";");
+    if (signature === this.signature) return;
+    this.signature = signature;
+    this.layer.replaceChildren(...boxes);
+  }
+
+  destroy() {
+    this.observer.disconnect();
+    document.removeEventListener("scroll", this.paint, true);
+    this.layer.remove();
+  }
+}
+
 const NoteFind = Extension.create({
   name: "noteFind",
   addProseMirrorPlugins() {
     return [
       new Plugin({
         key: noteFindKey,
+        view(editorView) {
+          return new FindBoxes(editorView);
+        },
         state: {
-          init: () => ({ query: "", index: 0, matches: [] }),
+          init: () => ({ query: "", index: -1, matches: [] }),
           apply(transaction, value) {
             const meta = transaction.getMeta(noteFindKey);
-            if (meta && meta.clear) return { query: "", index: 0, matches: [] };
+            if (meta && meta.clear) return { query: "", index: -1, matches: [] };
             let query = value.query;
             let index = value.index;
             if (meta && typeof meta.query === "string") {
               query = meta.query;
-              index = 0;
+              index = -1;
             }
             if (meta && Number.isInteger(meta.index)) index = meta.index;
             const matches = findMatches(transaction.doc, query);
-            if (!matches.length) index = 0;
+            if (!matches.length || index < 0) index = -1;
             else index = ((index % matches.length) + matches.length) % matches.length;
             return { query, index, matches };
           },
@@ -100,7 +175,7 @@ const NoteFind = Extension.create({
             if (!found || !found.matches.length) return DecorationSet.empty;
             const marks = found.matches.map((match, index) =>
               Decoration.inline(match.from, match.to, {
-                class: index === found.index ? "find-match find-match-current" : "find-match",
+                class: index === found.index && found.index >= 0 ? "find-match find-match-current" : "find-match",
               })
             );
             return DecorationSet.create(state.doc, marks);

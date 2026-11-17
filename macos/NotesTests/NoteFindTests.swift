@@ -18,7 +18,6 @@ final class NoteFindTests: XCTestCase {
         XCTAssertTrue(highlighted.contains("haircut"), highlighted)
 
         _ = try await session.string("window.notesEditor.findNext()", in: webView)
-        _ = try await session.string("window.notesEditor.findPrevious()", in: webView)
         let once = try await session.string("window.notesEditor.replaceCurrent(\"wig\")", in: webView)
         XCTAssertTrue(once.contains("\"count\":2"), once)
         let afterOne = try await session.string("window.notesEditor.getHTML()", in: webView)

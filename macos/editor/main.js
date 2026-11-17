@@ -395,25 +395,23 @@ function findSummary() {
 }
 
 function revealCurrentFind() {
-  const state = findState();
-  const match = state.matches[state.index];
-  if (!match) return;
-  const selection = TextSelection.create(editor.state.doc, match.from, match.to);
-  editor.view.dispatch(editor.state.tr.setSelection(selection).scrollIntoView().setMeta("addToHistory", false));
+  const current = editor.view.dom.querySelector(".find-match-current");
+  current?.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
 function setFindQuery(query) {
   editor.view.dispatch(
     editor.state.tr.setMeta(noteFindKey, { query: String(query ?? "") }).setMeta("addToHistory", false)
   );
-  revealCurrentFind();
   return findSummary();
 }
 
 function moveFind(delta) {
   const state = findState();
   if (!state.matches.length) return findSummary();
-  const index = (state.index + delta + state.matches.length) % state.matches.length;
+  const index = state.index < 0
+    ? (delta < 0 ? state.matches.length - 1 : 0)
+    : (state.index + delta + state.matches.length) % state.matches.length;
   editor.view.dispatch(editor.state.tr.setMeta(noteFindKey, { index }).setMeta("addToHistory", false));
   revealCurrentFind();
   return findSummary();
@@ -421,7 +419,7 @@ function moveFind(delta) {
 
 function replaceCurrentFind(replacement) {
   const state = findState();
-  const match = state.matches[state.index];
+  const match = state.index < 0 ? null : state.matches[state.index];
   if (!match) return findSummary();
   const tr = editor.state.tr.insertText(String(replacement ?? ""), match.from, match.to);
   tr.setMeta(noteFindKey, { index: state.index });
@@ -439,7 +437,7 @@ function replaceEveryFind(replacement) {
     const match = state.matches[index];
     tr = tr.insertText(text, tr.mapping.map(match.from), tr.mapping.map(match.to));
   }
-  tr.setMeta(noteFindKey, { index: 0 });
+  tr.setMeta(noteFindKey, { index: -1 });
   editor.view.dispatch(tr);
   revealCurrentFind();
   return findSummary();

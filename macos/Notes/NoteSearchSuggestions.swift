@@ -20,8 +20,31 @@ final class SearchSuggestionPanel: NSPanel {
         level = .popUpMenu
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
+        // A panel's default ordering animation plays when the menu opens and closes.
+        animationBehavior = .none
         contentView = list
         setContentSize(list.fittingSize)
+    }
+
+    /// Shows the menu on this turn. The default panel animation reads as a delay.
+    func orderOnScreen() {
+        guard !isVisible else { return }
+        alphaValue = 1
+        NSAnimationContext.beginGrouping()
+        NSAnimationContext.current.duration = 0
+        orderFrontRegardless()
+        NSAnimationContext.endGrouping()
+        displayIfNeeded()
+    }
+
+    /// Hides the menu on this turn. Alpha drops immediately, in case ordering waits for mouse-up.
+    func orderOffScreen() {
+        guard isVisible else { return }
+        alphaValue = 0
+        NSAnimationContext.beginGrouping()
+        NSAnimationContext.current.duration = 0
+        orderOut(nil)
+        NSAnimationContext.endGrouping()
     }
 
     /// Puts the menu just under `anchor`, aligned to its leading edge.
@@ -40,9 +63,7 @@ final class SearchSuggestionPanel: NSPanel {
         if self.frame != frame {
             setFrame(frame, display: true)
         }
-        if !isVisible {
-            orderFrontRegardless()
-        }
+        orderOnScreen()
     }
 
     /// Puts the menu just under a capsule rectangle in screen coordinates.
@@ -56,13 +77,11 @@ final class SearchSuggestionPanel: NSPanel {
         if self.frame != frame {
             setFrame(frame, display: true)
         }
-        if !isVisible {
-            orderFrontRegardless()
-        }
+        orderOnScreen()
     }
 }
 
-/// Shared Notes through Notes with Attachments, in Notes' order.
+/// Checklists and attachments, in that order.
 final class SuggestionListView: NSView {
     static let menuWidth: CGFloat = 247
     static let rowHeight: CGFloat = 22
@@ -72,7 +91,7 @@ final class SuggestionListView: NSView {
     override var isFlipped: Bool { true }
 
     override var fittingSize: NSSize {
-        let rows = CGFloat(NoteSearchScope.allCases.count)
+        let rows = CGFloat(NoteSearchScope.menuScopes.count)
         let height = Self.menuInset * 2 + Self.rowHeight * rows
         return NSSize(width: Self.menuWidth, height: height)
     }
@@ -82,7 +101,7 @@ final class SuggestionListView: NSView {
         wantsLayer = true
         layer?.cornerRadius = 10
         var originY = Self.menuInset
-        for scope in NoteSearchScope.allCases {
+        for scope in NoteSearchScope.menuScopes {
             let row = SearchSuggestionRow(scope: scope)
             row.target = self
             row.action = #selector(choose(_:))

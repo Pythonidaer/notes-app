@@ -248,6 +248,7 @@ final class LibraryDatabaseTests: XCTestCase {
         XCTAssertTrue(NoteSearch.matches(checklist, query: "", scope: .checklists))
         XCTAssertFalse(NoteSearch.matches(attachment, query: "", scope: .checklists))
         XCTAssertTrue(NoteSearch.matches(attachment, query: "Confidence", scope: .attachments))
+        XCTAssertEqual(NoteSearchScope.menuScopes, [.checklists, .attachments])
         XCTAssertFalse(attachment.matches(.sharedNotes))
         XCTAssertFalse(attachment.matches(.lockedNotes))
         XCTAssertFalse(attachment.matches(.tags))
