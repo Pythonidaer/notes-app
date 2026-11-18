@@ -8,10 +8,15 @@ extension Notification.Name {
 
 /// Command-F opens the note find bar. The web view and the library search field both see the key.
 func noteFindKeyEquivalent(_ event: NSEvent) -> Bool {
-    let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-    guard flags == .command, event.charactersIgnoringModifiers?.lowercased() == "f" else { return false }
+    guard isNoteFindKeyEquivalent(event) else { return false }
     NotificationCenter.default.post(name: .showNoteFind, object: event.window)
     return true
+}
+
+/// Whether `event` is Command-F, with no other modifiers.
+func isNoteFindKeyEquivalent(_ event: NSEvent) -> Bool {
+    let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+    return flags == .command && event.charactersIgnoringModifiers?.lowercased() == "f"
 }
 
 /// Find and replace for the open note. A panel over the note, under the note controls.

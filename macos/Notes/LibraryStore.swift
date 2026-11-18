@@ -38,12 +38,23 @@ final class LibraryStore: ObservableObject {
         return folders.first { $0.id == folderID }
     }
 
-    func load() {
+    /// The selected note once its detail has loaded, or nil while it is loading or nothing is selected.
+    var openNote: NoteDetail? {
+        guard let note, note.id == selectedNoteID else { return nil }
+        return note
+    }
+
+    /// A note is selected but its detail has not loaded yet.
+    var isLoadingNote: Bool {
+        selectedNoteID != nil && openNote == nil
+    }
+
+    func load(file url: URL = LibraryDatabase.libraryURL) {
         guard snapshot == nil, loadError == nil else { return }
         do {
-            let opened = try LibraryDatabase.open(file: LibraryDatabase.libraryURL)
+            let opened = try LibraryDatabase.open(file: url)
             database = opened
-            snapshot = try opened.library()
+            snapshot = try opened.loadLibrarySnapshot()
         } catch {
             loadError = error.localizedDescription
         }
@@ -98,16 +109,22 @@ final class LibraryStore: ObservableObject {
         showNoteInCurrentFolder()
     }
 
-    func selectNote(_ id: String) {
+    /// Opens the note with `id` and returns whether it opened.
+    ///
+    /// When the note cannot be read, the open note stays selected and `status` shows the error.
+    @discardableResult
+    func selectNote(_ id: String) -> Bool {
+        guard let database else { return false }
         do {
-            let detail = try database?.note(id: id)
+            let detail = try database.note(id: id)
             selectedNoteID = id
             note = detail
             editing = false
             status = ""
+            return true
         } catch {
-            selectedNoteID = id
             status = error.localizedDescription
+            return false
         }
     }
 
@@ -129,7 +146,7 @@ final class LibraryStore: ObservableObject {
                 bodyHTML: bodyHTML,
                 createdAtSource: createdAtSource.trimmingCharacters(in: .whitespacesAndNewlines)
             )
-            try reload(database)
+            try refreshSavedNote(id: id, in: database)
             if note?.id == id {
                 note = saved
             }
@@ -276,7 +293,19 @@ final class LibraryStore: ObservableObject {
     }
 
     private func reload(_ database: LibraryDatabase) throws {
-        snapshot = try database.library()
+        snapshot = try database.loadLibrarySnapshot()
+    }
+
+    /// Updates only the saved note's summary, because a full reload parses every note body.
+    ///
+    /// Falls back to a full reload when the note is missing from the snapshot.
+    private func refreshSavedNote(id: String, in database: LibraryDatabase) throws {
+        let summary = try database.noteSummary(id: id)
+        guard var refreshed = snapshot, refreshed.replaceSavedNote(with: summary) else {
+            try reload(database)
+            return
+        }
+        snapshot = refreshed
     }
 
     private func perform(_ work: (LibraryDatabase) throws -> Void) {

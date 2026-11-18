@@ -5,6 +5,7 @@ import { EditorState, TextSelection } from "@tiptap/pm/state";
 import { createTable } from "@tiptap/extension-table";
 
 import { extensions, highlightColors, noteDateKey, noteFindKey } from "./extensions.js";
+import { backspaceAtLineStart, needsTitleLine } from "./lineStart.js";
 import "./editor.css";
 
 let quiet = false;
@@ -26,7 +27,7 @@ const editor = new Editor({
     },
     handleKeyDown(view, event) {
       if (event.key === "Enter") return splitTitle(view);
-      if (event.key === "Backspace") return keepTitle(view);
+      if (event.key === "Backspace" && !view.composing) return backspaceAtLineStart(view.state, view.dispatch);
       return false;
     },
   },
@@ -105,7 +106,7 @@ editor.view.dom.addEventListener(
   true
 );
 
-function runQuiet(work) {
+function withoutPostingNoteChanges(work) {
   quiet = true;
   try {
     work();
@@ -136,10 +137,11 @@ function loadNote(title, html) {
   holder.innerHTML = html && String(html).trim() ? String(html) : "<p></p>";
   holder.querySelectorAll("[data-note-title]").forEach((node) => node.remove());
   const cleaned = holder.innerHTML.trim() || "<p></p>";
-  runQuiet(() => {
+  withoutPostingNoteChanges(() => {
     editor.commands.setContent(cleaned, { emitUpdate: false });
-    const node = titleNode(editor.schema, title);
-    editor.view.dispatch(editor.state.tr.insert(0, node));
+    if (needsTitleLine(title, editor.state.doc)) {
+      editor.view.dispatch(editor.state.tr.insert(0, titleNode(editor.schema, title)));
+    }
     // One editor serves every note. Opening a note must leave the undo stack empty,
     // or Command-Z restores the note that was open before this one.
     dropUndoHistory();
@@ -353,15 +355,6 @@ function splitTitle(view) {
   return true;
 }
 
-function keepTitle(view) {
-  if (view.composing) return false;
-  const { selection } = view.state;
-  if (!selection.empty) return false;
-  const { $from } = selection;
-  if ($from.parent.type.name !== "noteTitle" || $from.parentOffset > 0) return false;
-  return true;
-}
-
 function insertNoteTable() {
   if (!editor.isActive("table")) {
     return editor.chain().focus().insertTable({ rows: 2, cols: 2, withHeaderRow: false }).run();
@@ -464,7 +457,7 @@ function clearFindHighlights() {
 
 window.notesEditor = {
   setHTML(html) {
-    runQuiet(() => {
+    withoutPostingNoteChanges(() => {
       editor.commands.setContent(html && String(html).trim() ? html : "<p></p>", {
         emitUpdate: false,
       });

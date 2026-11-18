@@ -87,15 +87,12 @@ enum NoteCalendar {
             return ordered.isEmpty ? [] : [Group(key: "all", label: "", notes: ordered)]
         }
 
-        var buckets: [String: (label: String, notes: [NoteSummary])] = [:]
+        var buckets: [String: (label: String, notes: [DatedNote])] = [:]
         for note in notes {
-            let classified = classify(
-                date: date(for: note, field: arrangement.field, calendar: calendar),
-                now: now,
-                calendar: calendar
-            )
+            let dated = DatedNote(note: note, date: date(for: note, field: arrangement.field, calendar: calendar))
+            let classified = classify(date: dated.date, now: now, calendar: calendar)
             var bucket = buckets[classified.key] ?? (classified.label, [])
-            bucket.notes.append(note)
+            bucket.notes.append(dated)
             buckets[classified.key] = bucket
         }
 
@@ -105,7 +102,7 @@ enum NoteCalendar {
             ordered.append(Group(
                 key: key,
                 label: bucket.label.isEmpty ? fallback : bucket.label,
-                notes: sorted(bucket.notes, field: arrangement.field, newestFirst: newestFirst, calendar: calendar)
+                notes: sorted(bucket.notes, field: arrangement.field, newestFirst: newestFirst)
             ))
         }
 
@@ -172,24 +169,16 @@ enum NoteCalendar {
         guard let date = effectiveDate(note, calendar: calendar) else {
             return ""
         }
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "M/d/yy"
-        return formatter.string(from: date)
+        return CachedFormatters.dateFormatter("M/d/yy", locale: "en_US_POSIX", calendar: calendar)
+            .string(from: date)
     }
 
     static func heading(_ raw: String, calendar: Calendar = .current) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "Unknown Date" }
         guard let date = parse(trimmed, calendar: calendar) else { return trimmed }
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US")
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "MMMM d, yyyy 'at' h:mm a"
-        return formatter.string(from: date)
+        return CachedFormatters.dateFormatter("MMMM d, yyyy 'at' h:mm a", locale: "en_US", calendar: calendar)
+            .string(from: date)
     }
 
     static func parse(_ raw: String?, calendar: Calendar = .current) -> Date? {
@@ -250,32 +239,46 @@ enum NoteCalendar {
         return ("year-\(noteYear)", String(noteYear))
     }
 
+    /// A note with its sort date parsed once, so sorting does not parse it again for every comparison.
+    private struct DatedNote {
+        var note: NoteSummary
+        var date: Date?
+    }
+
     private static func sorted(
         _ notes: [NoteSummary],
         field: NoteSortField,
         newestFirst: Bool,
         calendar: Calendar
     ) -> [NoteSummary] {
+        let dated = notes.map { DatedNote(note: $0, date: date(for: $0, field: field, calendar: calendar)) }
+        return sorted(dated, field: field, newestFirst: newestFirst)
+    }
+
+    private static func sorted(
+        _ notes: [DatedNote],
+        field: NoteSortField,
+        newestFirst: Bool
+    ) -> [NoteSummary] {
         notes.sorted { left, right in
             if field == .title {
-                let order = titleKey(left).localizedCaseInsensitiveCompare(titleKey(right))
-                if order == .orderedSame { return left.id < right.id }
+                let order = titleKey(left.note).localizedCaseInsensitiveCompare(titleKey(right.note))
+                if order == .orderedSame { return left.note.id < right.note.id }
                 return newestFirst ? order == .orderedAscending : order == .orderedDescending
             }
-            let leftDate = date(for: left, field: field, calendar: calendar)
-            let rightDate = date(for: right, field: field, calendar: calendar)
-            switch (leftDate, rightDate) {
+            switch (left.date, right.date) {
             case (nil, nil):
-                return left.id < right.id
+                return left.note.id < right.note.id
             case (nil, _):
                 return false
             case (_, nil):
                 return true
             case let (leftDate?, rightDate?):
-                if leftDate == rightDate { return left.id < right.id }
+                if leftDate == rightDate { return left.note.id < right.note.id }
                 return newestFirst ? leftDate > rightDate : leftDate < rightDate
             }
         }
+        .map(\.note)
     }
 
     /// The list title. An empty note is "New Note" until a title is typed.
@@ -295,11 +298,10 @@ enum NoteCalendar {
     }
 
     private static func parseISO(_ value: String) -> Date? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: value) { return date }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: value)
+        // An ISO date starts with the year. Spelled-out dates skip two failed parses.
+        guard value.first?.isNumber == true else { return nil }
+        if let date = CachedFormatters.fractionalISO.date(from: value) { return date }
+        return CachedFormatters.iso.date(from: value)
     }
 
     private static func parseFormatted(_ value: String, calendar: Calendar) -> Date? {
@@ -314,12 +316,8 @@ enum NoteCalendar {
             "MMMM d, yyyy h:mm a",
             "MMMM d, yyyy"
         ]
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = calendar.timeZone
         for format in formats {
-            formatter.dateFormat = format
+            let formatter = CachedFormatters.dateFormatter(format, locale: "en_US_POSIX", calendar: calendar)
             if let date = formatter.date(from: value) { return date }
         }
         return nil
@@ -347,5 +345,37 @@ enum NoteCalendar {
         parts.month = month
         parts.day = day
         return calendar.date(from: parts)
+    }
+}
+
+/// Date formatters are slow to create, and the note list formats every row on each update.
+private enum CachedFormatters {
+    static let fractionalISO: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    static let iso: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    private static let lock = NSLock()
+    private static var dateFormatters: [String: DateFormatter] = [:]
+
+    static func dateFormatter(_ format: String, locale: String, calendar: Calendar) -> DateFormatter {
+        let key = "\(format)|\(locale)|\(calendar.identifier)|\(calendar.timeZone.identifier)"
+        lock.lock()
+        defer { lock.unlock() }
+        if let cached = dateFormatters[key] { return cached }
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: locale)
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = format
+        dateFormatters[key] = formatter
+        return formatter
     }
 }

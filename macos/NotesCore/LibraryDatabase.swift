@@ -43,7 +43,7 @@ final class LibraryDatabase {
         return library
     }
 
-    func library() throws -> LibrarySnapshot {
+    func loadLibrarySnapshot() throws -> LibrarySnapshot {
         LibrarySnapshot(profile: try profile(), folders: try folders(), notes: try notes())
     }
 
@@ -338,16 +338,6 @@ final class LibraryDatabase {
         }
     }
 
-    func performDrop(raw: String, on anchor: DropAnchor, zone: DropZone) throws {
-        guard let dragged = draggedItem(from: raw) else { return }
-        switch anchor {
-        case .allNotes:
-            try dropOnAllNotes(kind: dragged.kind, id: dragged.id)
-        case .folder(let folderID):
-            try drop(kind: dragged.kind, id: dragged.id, into: folderID, zone: zone)
-        }
-    }
-
     func tableNames() throws -> [String] {
         try texts(
             "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
@@ -355,4 +345,56 @@ final class LibraryDatabase {
         )
     }
 
+}
+
+// MARK: - Drag and drop
+
+extension LibraryDatabase {
+    /// Decodes a sidebar drag payload and moves the note or folder it names.
+    ///
+    /// A payload that `DraggedItem` cannot decode changes nothing and does not throw.
+    func performDrop(raw: String, on anchor: DropAnchor, zone: DropZone) throws {
+        guard let item = DraggedItem(payload: raw) else { return }
+        try drop(item, on: anchor, zone: zone)
+    }
+
+    /// Moves a dragged note or folder to `anchor`.
+    ///
+    /// A note goes into the anchor folder, or out of every folder on All Notes, whatever the zone.
+    /// A folder dropped on All Notes goes last at the root. On a folder, `.child` nests it last
+    /// inside, and `.before` or `.after` places it beside the anchor. A folder dropped on itself
+    /// does nothing.
+    func drop(_ item: DraggedItem, on anchor: DropAnchor, zone: DropZone) throws {
+        switch (item, anchor) {
+        case (.note(let id), .allNotes):
+            _ = try moveNote(id: id, folderID: nil)
+        case (.note(let id), .folder(let folderID)):
+            _ = try moveNote(id: id, folderID: folderID)
+        case (.folder(let id), .allNotes):
+            try moveFolderToRoot(id: id)
+        case (.folder(let id), .folder(let folderID)):
+            try moveFolder(id: id, onto: folderID, zone: zone)
+        }
+    }
+
+    /// Moves a nested folder to the end of the root folders. A root folder stays where it is.
+    private func moveFolderToRoot(id: String) throws {
+        guard try parentOf(id) != nil else { return }
+        let position = try siblingIDs(parentID: nil, excluding: id).count
+        try moveFolder(id: id, parentID: nil, position: position)
+    }
+
+    private func moveFolder(id: String, onto targetID: String, zone: DropZone) throws {
+        guard id != targetID else { return }
+        if zone == .child {
+            let position = try siblingIDs(parentID: targetID, excluding: id).count
+            try moveFolder(id: id, parentID: targetID, position: position)
+            return
+        }
+        let parent = try parentOf(targetID)
+        let siblings = try siblingIDs(parentID: parent, excluding: id)
+        let index = siblings.firstIndex(of: targetID) ?? -1
+        let position = zone == .before ? index : index + 1
+        try moveFolder(id: id, parentID: parent, position: max(0, position))
+    }
 }

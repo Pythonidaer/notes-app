@@ -2,44 +2,6 @@ import Foundation
 import SQLite3
 
 extension LibraryDatabase {
-    func draggedItem(from raw: String) -> (kind: String, id: String)? {
-        let parts = raw.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
-        guard parts.count == 2 else { return nil }
-        let id = String(parts[1])
-        guard !id.isEmpty else { return nil }
-        return (kind: String(parts[0]), id: id)
-    }
-
-    func dropOnAllNotes(kind: String, id: String) throws {
-        if kind == "note" {
-            _ = try moveNote(id: id, folderID: nil)
-            return
-        }
-        guard kind == "folder" else { return }
-        guard try parentOf(id) != nil else { return }
-        let position = try siblingIDs(parentID: nil, excluding: id).count
-        try moveFolder(id: id, parentID: nil, position: position)
-    }
-
-    func drop(kind: String, id: String, into folderID: String, zone: DropZone) throws {
-        if kind == "folder", id == folderID { return }
-        if kind == "note" {
-            _ = try moveNote(id: id, folderID: folderID)
-            return
-        }
-        guard kind == "folder" else { return }
-        if zone == .child {
-            let position = try siblingIDs(parentID: folderID, excluding: id).count
-            try moveFolder(id: id, parentID: folderID, position: position)
-            return
-        }
-        let parent = try parentOf(folderID)
-        let siblings = try siblingIDs(parentID: parent, excluding: id)
-        let index = siblings.firstIndex(of: folderID) ?? -1
-        let position = zone == .before ? index : index + 1
-        try moveFolder(id: id, parentID: parent, position: max(0, position))
-    }
-
     func validateExistingLibrary() throws {
         let hasLabels = try tableExists("labels")
         let hasLinks = try tableExists("note_labels")
@@ -85,6 +47,9 @@ extension LibraryDatabase {
         }
     }
 
+    /// Every note's list summary, most recently updated first.
+    ///
+    /// Parses each note body, so the cost grows with the size of the whole library.
     func notes() throws -> [NoteSummary] {
         let names = try audioDisplayNames()
         return try query(
@@ -93,20 +58,37 @@ extension LibraryDatabase {
             FROM notes
             ORDER BY updated_at DESC
             """
-        ).map { row in
-            let html = text(row, 5) ?? ""
-            return NoteSummary(
-                id: text(row, 0) ?? "",
-                title: text(row, 1) ?? "",
-                createdAtSource: text(row, 2) ?? "",
-                modifiedAtSource: text(row, 3) ?? "",
-                folderID: text(row, 4),
-                opening: ReadingHTML.opening(in: html),
-                searchText: ReadingHTML.searchText(in: html, displayNames: names),
-                hasChecklist: ReadingHTML.containsChecklist(in: html),
-                hasAttachment: ReadingHTML.containsAttachment(in: html)
-            )
+        ).map { makeSummary(row: $0, displayNames: names) }
+    }
+
+    /// The list summary for one note, built the same way as `notes()`.
+    func noteSummary(id: String) throws -> NoteSummary {
+        let rows = try query(
+            """
+            SELECT id, title, created_at_source, modified_at_source, folder_id, body_html
+            FROM notes WHERE id = ?1
+            """,
+            [.text(id)]
+        )
+        guard let row = rows.first else {
+            throw LibraryError.message("That note is not in the library.")
         }
+        return makeSummary(row: row, displayNames: try audioDisplayNames())
+    }
+
+    private func makeSummary(row: [Bound], displayNames: [String: String]) -> NoteSummary {
+        let html = text(row, 5) ?? ""
+        return NoteSummary(
+            id: text(row, 0) ?? "",
+            title: text(row, 1) ?? "",
+            createdAtSource: text(row, 2) ?? "",
+            modifiedAtSource: text(row, 3) ?? "",
+            folderID: text(row, 4),
+            opening: ReadingHTML.opening(in: html),
+            searchText: ReadingHTML.searchText(in: html, displayNames: displayNames),
+            hasChecklist: ReadingHTML.containsChecklist(in: html),
+            hasAttachment: ReadingHTML.containsAttachment(in: html)
+        )
     }
 
     func folder(id: String) throws -> Folder {

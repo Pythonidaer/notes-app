@@ -228,6 +228,27 @@ final class NoteCalendarTests: XCTestCase {
         return [createdLater, editedLater]
     }
 
+    /// One note list render: arrange about 300 notes, then format each row's date.
+    func testListOfThreeHundredNotesArrangesQuickly() {
+        let calendar = newYork()
+        let spelled = DateFormatter()
+        spelled.calendar = calendar
+        spelled.locale = Locale(identifier: "en_US_POSIX")
+        spelled.timeZone = calendar.timeZone
+        spelled.dateFormat = "EEEE, MMMM d, yyyy 'at' h:mm:ss a"
+        let notes = (0..<300).map { index -> NoteSummary in
+            let day = date(2020 + index % 7, 1 + index % 12, 1 + index % 28, index % 24, calendar)
+            let source = index.isMultiple(of: 2) ? iso(day, calendar) : spelled.string(from: day)
+            return note(source, "note-\(index)")
+        }
+        let now = date(2026, 11, 18, 12, calendar)
+        measure {
+            let groups = NoteCalendar.arrange(notes, now: now, calendar: calendar)
+            let dates = groups.flatMap(\.notes).map { NoteCalendar.format($0, calendar: calendar) }
+            XCTAssertEqual(dates.count, notes.count)
+        }
+    }
+
     private func newYork() -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/New_York")!

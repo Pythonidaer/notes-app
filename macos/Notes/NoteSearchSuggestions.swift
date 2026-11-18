@@ -186,8 +186,9 @@ private final class SearchSuggestionRow: NSControl {
         nil
     }
 
+    /// `point` is in the menu's coordinates, so it is compared with `frame`.
     override func hitTest(_ point: NSPoint) -> NSView? {
-        bounds.contains(point) ? self : nil
+        frame.contains(point) ? self : nil
     }
 
     override func mouseEntered(with event: NSEvent) {

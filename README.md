@@ -55,3 +55,9 @@ The database has to persist across restart and shut down.
 Recently Deleted can go at the bottom of the folder list. A folder needs a … button that appears on hover and opens a menu for rename and the other folder actions.
 
 The app needs the Mac menu bar at the top of the screen while it is the active application. That is the application menu, not another control in the window toolbar.
+
+Later: review why choosing a search suggestion always asks to allow access to Documents. Compare the checklist component and the search suggestion menu with Apple Notes.
+
+Later: the menu bar no longer has a File menu. Review the menus, and the menu for each item, against Apple Notes, then add what this app needs of its own.
+
+Later: closing the main window leaves no Notes menu bar to reopen it from. The menu bar switches to the next app, such as Messages or Finder, so reopening takes `npm run app`. Decide whether the close button should quit the app, or whether clicking the Dock icon should reopen the window.

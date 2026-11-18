@@ -11,7 +11,8 @@ struct NoteTable: NSViewRepresentable {
     var showsResultFolder: Bool = false
     var folderNames: [String: String] = [:]
     var folders: [Folder] = []
-    var onSelect: (String) -> Void
+    /// Opens the clicked note. Returns false when it could not open, and the previous row is selected again.
+    var onSelect: (String) -> Bool
     var onMove: (String, String) -> Void = { _, _ in }
     var onDuplicate: (String) -> Void = { _ in }
     var onDelete: (String) -> Void = { _ in }
@@ -80,7 +81,7 @@ struct NoteTable: NSViewRepresentable {
 
         weak var table: NoteListView?
         private var clickMonitor: Any?
-        var onSelect: (String) -> Void = { _ in }
+        var onSelect: (String) -> Bool = { _ in true }
         var onMove: (String, String) -> Void = { _, _ in }
         var onDelete: (String) -> Void = { _ in }
         var onDuplicate: (String) -> Void = { _ in }
@@ -224,8 +225,13 @@ struct NoteTable: NSViewRepresentable {
             let row = table.selectedRow
             guard row >= 0, case .note(let note, _, _) = rows[row] else { return }
             guard note.id != selectedID else { return }
+            let previousID = selectedID
             selectedID = note.id
-            onSelect(note.id)
+            guard onSelect(note.id) else {
+                selectedID = previousID
+                showSelection()
+                return
+            }
         }
 
         private func showSelection() {

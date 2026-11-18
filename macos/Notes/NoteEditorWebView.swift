@@ -220,14 +220,14 @@ struct NoteEditorWebView: NSViewRepresentable {
             context.coordinator.title = title
             context.coordinator.html = html
             guard context.coordinator.pageReady else { return }
-            context.coordinator.apply(in: webView, announceReady: true)
+            context.coordinator.loadNoteIntoEditor(in: webView, announceReady: true)
             return
         }
         guard context.coordinator.appliedHTML != nil else {
             context.coordinator.title = title
             context.coordinator.html = html
             guard context.coordinator.pageReady else { return }
-            context.coordinator.apply(in: webView, announceReady: true)
+            context.coordinator.loadNoteIntoEditor(in: webView, announceReady: true)
             return
         }
         guard let incoming = context.coordinator.sync.noteToApply(storedTitle: title, storedHTML: html) else {
@@ -236,7 +236,7 @@ struct NoteEditorWebView: NSViewRepresentable {
         context.coordinator.title = incoming.title
         context.coordinator.html = incoming.html
         guard context.coordinator.pageReady else { return }
-        context.coordinator.apply(in: webView, announceReady: false)
+        context.coordinator.loadNoteIntoEditor(in: webView, announceReady: false)
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
@@ -275,7 +275,7 @@ struct NoteEditorWebView: NSViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             pageReady = true
             confineScrollingToVertical(webView)
-            apply(in: webView, announceReady: true)
+            loadNoteIntoEditor(in: webView, announceReady: true)
         }
 
         func webView(
@@ -305,7 +305,7 @@ struct NoteEditorWebView: NSViewRepresentable {
             onNoteChange(change.title, change.html)
         }
 
-        func apply(in webView: WKWebView, announceReady: Bool) {
+        func loadNoteIntoEditor(in webView: WKWebView, announceReady: Bool) {
             loadGeneration += 1
             let generation = loadGeneration
             let noteID = noteID

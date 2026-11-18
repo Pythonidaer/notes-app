@@ -43,11 +43,11 @@ enum LibraryDrag {
     static let pasteboardType = NSPasteboard.PasteboardType("com.pythonidaer.notes.drag")
 
     static func payload(noteID: String) -> String {
-        "note:\(noteID)"
+        DraggedItem.note(id: noteID).payload
     }
 
     static func payload(folderID: String) -> String {
-        "folder:\(folderID)"
+        DraggedItem.folder(id: folderID).payload
     }
 
     static func writer(_ raw: String) -> NSPasteboardItem {
@@ -55,6 +55,40 @@ enum LibraryDrag {
         item.setString(raw, forType: pasteboardType)
         item.setString(raw, forType: .string)
         return item
+    }
+}
+
+/// The note or folder carried by a library drag.
+enum DraggedItem: Equatable {
+    case note(id: String)
+    case folder(id: String)
+
+    /// Decodes a payload written by `LibraryDrag`, such as `note:<id>` or `folder:<id>`.
+    ///
+    /// Everything after the first colon is the id. Returns nil when the kind is not
+    /// `note` or `folder`, or when the id is empty.
+    init?(payload: String) {
+        let parts = payload.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2, !parts[1].isEmpty else { return nil }
+        let id = String(parts[1])
+        switch parts[0] {
+        case "note":
+            self = .note(id: id)
+        case "folder":
+            self = .folder(id: id)
+        default:
+            return nil
+        }
+    }
+
+    /// The pasteboard string for this item.
+    var payload: String {
+        switch self {
+        case .note(let id):
+            "note:\(id)"
+        case .folder(let id):
+            "folder:\(id)"
+        }
     }
 }
 
@@ -354,6 +388,17 @@ struct LibrarySnapshot: Equatable {
     var profile: Profile
     var folders: [Folder]
     var notes: [NoteSummary]
+
+    /// Replaces the summary of a note that was just saved and moves it first.
+    ///
+    /// A save sets the newest `updated_at`, so the note leads `notes` as it would after a full reload.
+    /// Returns false and changes nothing when the note is not in the snapshot.
+    mutating func replaceSavedNote(with summary: NoteSummary) -> Bool {
+        guard let index = notes.firstIndex(where: { $0.id == summary.id }) else { return false }
+        notes.remove(at: index)
+        notes.insert(summary, at: 0)
+        return true
+    }
 }
 
 struct EmbeddedAudio: Equatable, Identifiable {

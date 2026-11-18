@@ -15,7 +15,7 @@ struct NoteDetailColumn: View {
             NoteCanvas(
                 editor: editor,
                 note: openNote,
-                isLoading: store.selectedNoteID != nil && openNote == nil,
+                isLoading: store.isLoadingNote,
                 colorSchemeName: store.colorSchemeName,
                 focusWhenReady: store.editing,
                 onSave: { id, title, bodyHTML, createdAtSource in
@@ -65,8 +65,7 @@ struct NoteDetailColumn: View {
     }
 
     private var openNote: NoteDetail? {
-        guard let note = store.note, note.id == store.selectedNoteID else { return nil }
-        return note
+        store.openNote
     }
 
     private var noteIsOpen: Bool {

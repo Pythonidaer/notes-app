@@ -42,7 +42,7 @@ final class LibraryDatabaseTests: XCTestCase {
         try XCTSkipUnless(FileManager.default.fileExists(atPath: url.path))
         let before = try Fixture.tableNames(url)
         let database = try LibraryDatabase.open(file: url)
-        let library = try database.library()
+        let library = try database.loadLibrarySnapshot()
         XCTAssertTrue(library.folders.contains { $0.id == LibraryDatabase.comedyFolderID })
         XCTAssertFalse(library.notes.isEmpty)
         XCTAssertEqual(try Fixture.tableNames(url), before)
@@ -81,7 +81,7 @@ final class LibraryDatabaseTests: XCTestCase {
         XCTAssertEqual(original.bodyHTML, saved.bodyHTML)
         XCTAssertEqual(original.createdAtSource, saved.createdAtSource)
         XCTAssertEqual(original.folderID, draft.id)
-        XCTAssertEqual(try database.library().notes.filter { $0.title == "Set list" }.count, 2)
+        XCTAssertEqual(try database.loadLibrarySnapshot().notes.filter { $0.title == "Set list" }.count, 2)
     }
 
     func testDuplicateNoteKeepsAnUnfiledNoteUnfiled() throws {
@@ -209,11 +209,11 @@ final class LibraryDatabaseTests: XCTestCase {
         let alpha = try database.createFolder(name: "Alpha")
         let zeta = try database.createFolder(name: "Zeta")
         try database.performDrop(raw: "folder:\(zeta.id)", on: .folder(alpha.id), zone: .before)
-        let rootIDs = try database.library().folders.filter { $0.parentID == nil }.map(\.id)
+        let rootIDs = try database.loadLibrarySnapshot().folders.filter { $0.parentID == nil }.map(\.id)
         XCTAssertEqual(rootIDs, [LibraryDatabase.comedyFolderID, zeta.id, alpha.id])
 
         try database.performDrop(raw: "folder:\(zeta.id)", on: .folder(alpha.id), zone: .child)
-        let nested = try database.library().folders.first { $0.id == zeta.id }
+        let nested = try database.loadLibrarySnapshot().folders.first { $0.id == zeta.id }
         XCTAssertEqual(nested?.parentID, alpha.id)
 
         XCTAssertThrowsError(
@@ -221,6 +221,36 @@ final class LibraryDatabaseTests: XCTestCase {
         ) { error in
             XCTAssertEqual(error as? LibraryError, .message("A folder cannot move inside itself."))
         }
+    }
+
+    func testMalformedOrUnknownDropPayloadsLeaveTheLibraryUnchanged() throws {
+        let (url, database) = try Fixture.importedLibrary()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let parent = try database.createFolder(name: "Parent")
+        let child = try database.createFolder(name: "Child", parentID: parent.id)
+        let note = try database.createNote(folderID: child.id)
+        let before = try database.loadLibrarySnapshot()
+        let payloads = [
+            "",
+            "note",
+            "note:",
+            "folder:",
+            ":\(note.id)",
+            "Note:\(note.id)",
+            "label:\(note.id)",
+            "label:\(child.id)",
+            note.id,
+            child.id
+        ]
+        let anchors: [DropAnchor] = [.allNotes, .folder(LibraryDatabase.comedyFolderID), .folder(parent.id)]
+        for payload in payloads {
+            for anchor in anchors {
+                for zone in [DropZone.before, .child, .after] {
+                    XCTAssertNoThrow(try database.performDrop(raw: payload, on: anchor, zone: zone), payload)
+                }
+            }
+        }
+        XCTAssertEqual(try database.loadLibrarySnapshot(), before)
     }
 
     func testDeleteFolderDeletesNotesAndSubfolders() throws {
@@ -243,13 +273,13 @@ final class LibraryDatabaseTests: XCTestCase {
         try database.deleteFolder(id: parent.id)
 
         for id in [parent.id, child.id, grandchild.id] {
-            XCTAssertNil(try database.library().folders.first { $0.id == id })
+            XCTAssertNil(try database.loadLibrarySnapshot().folders.first { $0.id == id })
         }
         for id in [inParent.id, inChild.id, inGrandchild.id] {
             XCTAssertThrowsError(try database.note(id: id))
         }
         XCTAssertEqual(try database.note(id: kept.id).folderID, keptFolder.id)
-        XCTAssertNotNil(try database.library().folders.first { $0.id == keptFolder.id })
+        XCTAssertNotNil(try database.loadLibrarySnapshot().folders.first { $0.id == keptFolder.id })
         XCTAssertTrue(FileManager.default.fileExists(atPath: audio.path))
     }
 
@@ -309,7 +339,7 @@ final class LibraryDatabaseTests: XCTestCase {
             "INSERT INTO audio_display_names (storage_path, display_name, updated_at) VALUES (?1, ?2, ?3)",
             [.text(path), .text("Stage whisper"), .text("2020-01-01T00:00:00Z")]
         )
-        let note = try database.library().notes.first { $0.id == created.id }
+        let note = try database.loadLibrarySnapshot().notes.first { $0.id == created.id }
         XCTAssertEqual(note?.title, "Set list")
         XCTAssertTrue(note?.matchesSearch("Confidence.mp3") == true)
         XCTAssertTrue(note?.matchesSearch("Stage whisper") == true)

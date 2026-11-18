@@ -73,7 +73,7 @@ struct NoteCanvas: View {
                 showFindBar()
             }
             .background(alignment: .topLeading) {
-                HostWindowReader { hostWindow = $0 }
+                HostWindowReader(onChange: { hostWindow = $0 }, onFind: showFindBar)
                     .frame(width: 0, height: 0)
             }
     }
@@ -402,22 +402,30 @@ private struct FindPanelHeightKey: PreferenceKey {
 }
 
 /// Reads the window that owns this note, so Command-F opens find in that window only.
+///
+/// Command-F pressed anywhere in that window calls `onFind`, whichever view has focus.
 private struct HostWindowReader: NSViewRepresentable {
     var onChange: (NSWindow?) -> Void
+    var onFind: () -> Void
 
     func makeNSView(context: Context) -> NSView {
         let view = HostWindowView()
         view.onChange = onChange
+        view.onFind = onFind
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        (nsView as? HostWindowView)?.onChange = onChange
+        guard let view = nsView as? HostWindowView else { return }
+        view.onChange = onChange
+        view.onFind = onFind
     }
 }
 
 private final class HostWindowView: NSView {
     var onChange: (NSWindow?) -> Void = { _ in }
+    var onFind: () -> Void = {}
+    private var findMonitor: Any?
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         nil
@@ -425,6 +433,31 @@ private final class HostWindowView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        installFindMonitor(window != nil)
         onChange(window)
+    }
+
+    /// Watches key-downs while this view is in a window. Only that window's Command-F is consumed.
+    private func installFindMonitor(_ install: Bool) {
+        if install {
+            guard findMonitor == nil else { return }
+            findMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                guard let self, let window, event.window === window, isNoteFindKeyEquivalent(event) else {
+                    return event
+                }
+                onFind()
+                return nil
+            }
+            return
+        }
+        guard let findMonitor else { return }
+        NSEvent.removeMonitor(findMonitor)
+        self.findMonitor = nil
+    }
+
+    deinit {
+        if let findMonitor {
+            NSEvent.removeMonitor(findMonitor)
+        }
     }
 }

@@ -40,6 +40,8 @@
 		A10000000000000000000054 /* NoteWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteWindow.swift; sourceTree = "<group>"; };
 		A10000000000000000000055 /* OpenNoteWindows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenNoteWindows.swift; sourceTree = "<group>"; };
 		A10000000000000000000056 /* OpenNoteWindowsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenNoteWindowsTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000057 /* LibraryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStoreTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000058 /* NoteSearchFieldTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteSearchFieldTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000031 /* Fixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixture.swift; sourceTree = "<group>"; };
 		A10000000000000000000032 /* LibraryDatabaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDatabaseTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000033 /* NoteCalendarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCalendarTests.swift; sourceTree = "<group>"; };
@@ -96,6 +98,12 @@
 		B10000000000000000000024 /* AudioLocator.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014; };
 		B10000000000000000000025 /* ReadingHTML.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015; };
 		B10000000000000000000026 /* EditorFileServer.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016; };
+		B10000000000000000000058 /* LibraryStore.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008; };
+		B10000000000000000000059 /* LibraryStoreTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000057; };
+		B10000000000000000000060 /* NoteSearchFieldTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000058; };
+		B10000000000000000000061 /* NoteSearchField.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000025; };
+		B10000000000000000000062 /* NoteSearchSuggestions.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027; };
+		B10000000000000000000063 /* NoteFindBar.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000024; };
 		B10000000000000000000031 /* Fixture.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000031; };
 		B10000000000000000000032 /* LibraryDatabaseTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000032; };
 		B10000000000000000000033 /* NoteCalendarTests.swift in Tests */ = {isa = PBXBuildFile; fileRef = A10000000000000000000033; };
@@ -156,6 +164,8 @@
 			children = (
 				A10000000000000000000031 /* Fixture.swift */,
 				A10000000000000000000032 /* LibraryDatabaseTests.swift */,
+				A10000000000000000000057 /* LibraryStoreTests.swift */,
+				A10000000000000000000058 /* NoteSearchFieldTests.swift */,
 				A10000000000000000000033 /* NoteCalendarTests.swift */,
 				A10000000000000000000034 /* AudioLocatorTests.swift */,
 				A10000000000000000000035 /* EditorRoundTripTests.swift */,
@@ -335,8 +345,14 @@
 				B10000000000000000000056 /* OpenNoteWindows.swift in Tests */,
 				B10000000000000000000057 /* OpenNoteWindowsTests.swift in Tests */,
 				B10000000000000000000026 /* EditorFileServer.swift in Tests */,
+				B10000000000000000000058 /* LibraryStore.swift in Tests */,
 				B10000000000000000000031 /* Fixture.swift in Tests */,
 				B10000000000000000000032 /* LibraryDatabaseTests.swift in Tests */,
+				B10000000000000000000059 /* LibraryStoreTests.swift in Tests */,
+				B10000000000000000000061 /* NoteSearchField.swift in Tests */,
+				B10000000000000000000062 /* NoteSearchSuggestions.swift in Tests */,
+				B10000000000000000000063 /* NoteFindBar.swift in Tests */,
+				B10000000000000000000060 /* NoteSearchFieldTests.swift in Tests */,
 				B10000000000000000000033 /* NoteCalendarTests.swift in Tests */,
 				B10000000000000000000034 /* AudioLocatorTests.swift in Tests */,
 				B10000000000000000000035 /* EditorRoundTripTests.swift in Tests */,

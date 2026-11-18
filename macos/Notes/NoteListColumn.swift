@@ -31,7 +31,7 @@ struct NoteListColumn: View {
                     onMove: { store.moveNote($0, to: $1) },
                     onDuplicate: { store.duplicateNote($0) },
                     onDelete: { id in
-                        store.selectNote(id)
+                        guard store.selectNote(id) else { return }
                         store.askToDeleteNote()
                     },
                     onOpenInNewWindow: onOpenInNewWindow
